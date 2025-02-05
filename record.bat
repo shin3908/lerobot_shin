@@ -3,9 +3,9 @@ python lerobot/scripts/control_robot.py ^
   --control.type=record ^
   --control.single_task="Grasp a block and put it in the hole." ^
   --control.fps=30 ^
-  --control.repo_id=shin1107/koch_test_block ^
+  --control.repo_id=shin1107/koch_train_block ^
   --control.warmup_time_s=5 ^
   --control.episode_time_s=30 ^
-  --control.reset_time_s=30 ^
-  --control.num_episodes=2 ^
+  --control.reset_time_s=20 ^
+  --control.num_episodes=50 ^
   --control.push_to_hub=true
