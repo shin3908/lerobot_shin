@@ -335,9 +335,10 @@ class ACT(nn.Module):
 
         # Backbone for image feature extraction.
         if self.config.image_features:
+            weights = None if config.pretrained_backbone_weights in ["None", None, "'None'"] else config.pretrained_backbone_weights
             backbone_model = getattr(torchvision.models, config.vision_backbone)(
                 replace_stride_with_dilation=[False, False, config.replace_final_stride_with_dilation],
-                weights=config.pretrained_backbone_weights,
+                weights=weights,
                 norm_layer=FrozenBatchNorm2d,
             )
             # Note: The assumption here is that we are using a ResNet model (and hence layer4 is the final

@@ -5,6 +5,7 @@ python lerobot/scripts/train.py \
   --job_name=act_koch_default_resnet18_not_pretrained \
   --device=cuda \
   --wandb.enable=true \
+  --wandb.project=lerobot_VE \
   --policy.vision_backbone="resnet18" \
   --policy.pretrained_backbone_weights=None 
 
