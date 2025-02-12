@@ -6,6 +6,6 @@ python lerobot/scripts/train.py \
   --device=cuda \
   --wandb.enable=true \
   --policy.vision_backbone="resnet18" \
-  --policy.pretrained_backbone_weights=None \ 
+  --policy.pretrained_backbone_weights=None 
 
 ※ そのままbashを実行するとエラーが発生するので、ターミナルで実行すること
