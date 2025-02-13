@@ -21,9 +21,9 @@ for /f %%F in ('ssh %SERVER_USER%@%SERVER_ADDRESS% "ls -1 %SRC_DIR%"') do (
         :: ローカルのフォルダを作成（エラー防止）
         mkdir "!DST_PATH!"
 
-        :: SCPでコピー
+        :: SCPでコピー（中身のみコピー）
         echo コピー中: !FOLDER_NAME!
-        scp -r %SERVER_USER%@%SERVER_ADDRESS%:"!SRC_PATH!" "!DST_PATH!"
+        scp -r %SERVER_USER%@%SERVER_ADDRESS%:"!SRC_PATH!/." "!DST_PATH!"
 
         echo コピー完了: !FOLDER_NAME!
     )
