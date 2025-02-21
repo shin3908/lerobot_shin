@@ -1,9 +1,9 @@
 python lerobot/scripts/control_robot.py ^
   --robot.type=koch ^
   --control.type=record ^
-  --control.single_task="Grasp a block and put it in the hole with some shapes." ^
+  --control.single_task="Grasp a block and put it in the hole with some positions." ^
   --control.fps=30 ^
-  --control.repo_id=shin1107/koch_move_block_with_some_shapes ^
+  --control.repo_id=shin1107/koch_move_block_with_some_positions ^
   --control.warmup_time_s=5 ^
   --control.episode_time_s=60 ^
   --control.reset_time_s=60 ^
