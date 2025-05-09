@@ -1,11 +1,11 @@
 python lerobot/scripts/control_robot.py ^
   --robot.type=koch ^
   --control.type=record ^
-  --control.single_task="Grasp a block and put it in the hole with some positions." ^
+  --control.single_task="Base task (160 scenes)" ^
   --control.fps=30 ^
-  --control.repo_id=shin1107/koch_move_block_with_some_positions ^
+  --control.repo_id=shin1107/koch_base ^
   --control.warmup_time_s=5 ^
   --control.episode_time_s=60 ^
   --control.reset_time_s=60 ^
-  --control.num_episodes=60 ^
+  --control.num_episodes=160 ^
   --control.push_to_hub=true

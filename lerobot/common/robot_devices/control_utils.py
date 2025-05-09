@@ -101,19 +101,22 @@ def is_headless():
         return True
 
 
-def predict_action(observation, policy, device, use_amp):
-    observation = copy(observation)
+def predict_action(observation, policy, device, use_amp, task_input=None):
+    observation = copy(observation)        
+    if "task" not in observation and task_input is not None:
+        observation["task"] = [task_input]
     with (
         torch.inference_mode(),
         torch.autocast(device_type=device.type) if device.type == "cuda" and use_amp else nullcontext(),
     ):
         # Convert to pytorch format: channel first and float32 in [0,1] with batch dimension
         for name in observation:
-            if "image" in name:
-                observation[name] = observation[name].type(torch.float32) / 255
-                observation[name] = observation[name].permute(2, 0, 1).contiguous()
-            observation[name] = observation[name].unsqueeze(0)
-            observation[name] = observation[name].to(device)
+            if isinstance(observation[name], torch.Tensor):
+                if "image" in name:
+                    observation[name] = observation[name].type(torch.float32) / 255
+                    observation[name] = observation[name].permute(2, 0, 1).contiguous()
+                observation[name] = observation[name].unsqueeze(0)
+                observation[name] = observation[name].to(device)
 
         # Compute the next action with the policy
         # based on the current observation
@@ -197,6 +200,15 @@ def record_episode(
     fps,
     single_task,
 ):
+    if policy is not None:
+        task_input = input("Enter the language instruction: ")
+    else:
+        task_input = None
+        
+    import gc
+    gc.disable()
+    gc.collect()
+        
     control_loop(
         robot=robot,
         control_time_s=episode_time_s,
@@ -207,6 +219,7 @@ def record_episode(
         fps=fps,
         teleoperate=policy is None,
         single_task=single_task,
+        task_input=task_input,
     )
 
 
@@ -221,6 +234,7 @@ def control_loop(
     policy: PreTrainedPolicy = None,
     fps: int | None = None,
     single_task: str | None = None,
+    task_input: str | None = None,
 ):
     # TODO(rcadene): Add option to record logs
     if not robot.is_connected:
@@ -228,6 +242,15 @@ def control_loop(
 
     if events is None:
         events = {"exit_early": False}
+        
+    import gc
+    gc.set_debug(gc.DEBUG_STATS)
+    gc.collect()
+    gc_prev = gc.get_count()
+    gc.set_threshold(2000, 10, 10)
+    gc.disable()
+    
+    
 
     if control_time_s is None:
         control_time_s = float("inf")
@@ -242,10 +265,13 @@ def control_loop(
         raise ValueError(f"The dataset fps should be equal to requested fps ({dataset['fps']} != {fps}).")
 
     timestamp = 0
-    start_episode_t = time.perf_counter()
+    start_episode_t = None
     while timestamp < control_time_s:
         start_loop_t = time.perf_counter()
-
+        
+        if start_episode_t is None:
+            start_episode_t = start_loop_t
+            
         if teleoperate:
             observation, action = robot.teleop_step(record_data=True)
         else:
@@ -253,7 +279,7 @@ def control_loop(
 
             if policy is not None:
                 pred_action = predict_action(
-                    observation, policy, get_safe_torch_device(policy.config.device), policy.config.use_amp
+                    observation, policy, get_safe_torch_device(policy.config.device), policy.config.use_amp, task_input
                 )
                 # Action can eventually be clipped using `max_relative_target`,
                 # so action actually sent is saved in the dataset.
@@ -279,6 +305,14 @@ def control_loop(
             busy_wait(1 / fps - dt_s)
 
         dt_s = time.perf_counter() - start_loop_t
+        
+        gc_curr = gc.get_count()
+        if gc_curr != gc_prev:
+            print(f"[Gc] GC count changed: {gc_prev} -> {gc_curr}")
+            gc_prev = gc_curr        
+        if dt_s > 0.5:
+            print(f"[WARN] Loop took {dt_s:.2f}s")
+            
         log_control_info(robot, dt_s, fps=fps)
 
         timestamp = time.perf_counter() - start_episode_t
