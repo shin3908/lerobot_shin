@@ -29,17 +29,17 @@ python lerobot/scripts/train.py \
 python lerobot/scripts/train.py \
   --dataset.repo_id=shin1107/koch_base_episodes \
   --policy.type=pi0 \
-  --output_dir=outputs/train/koch_base_pi0 \
+  --output_dir=data3/train/koch_base_pi0 \
   --job_name=act_koch_base_pi0 \
   --policy.device=cuda \
   --wandb.enable=true \
   --wandb.project=lerobotpi_base
 
 ※ pi0fast ファインチューニング用
-  python lerobot/scripts/train.py \
+python lerobot/scripts/train.py \
   --dataset.repo_id=shin1107/koch_base_episodes \
   --policy.type=pi0fast \
-  --output_dir=outputs/train/koch_base_pi0fast \
+  --output_dir=data3/train/koch_base_pi0fast \
   --job_name=act_koch_base_pi0fast \
   --policy.device=cuda \
   --wandb.enable=true \
