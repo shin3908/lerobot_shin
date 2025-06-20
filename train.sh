@@ -46,7 +46,8 @@ python lerobot/scripts/train.py \
   --wandb.enable=true \
   --wandb.project=lerobotpi_base_pretrained
 
-# smolvlaの学習
+※ smolvlaの学習 cuda指定が必須
+export CUDA_VISIBLE_DEVICES=1
 python lerobot/scripts/train.py \
   --dataset.repo_id=shin1107/koch_base_episodes \
   --policy.path=lerobot/smolvla_base \
