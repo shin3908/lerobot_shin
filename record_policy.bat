@@ -1,12 +1,12 @@
 python lerobot/scripts/control_robot.py ^
   --robot.type=koch ^
   --control.type=record ^
-  --control.single_task="Evaluate pi0fast for base task" ^
-  --control.fps=30 ^
-  --control.repo_id=shin1107/eval_koch_base_pi0fast ^
+  --control.single_task="Evaluate pi0 for base task" ^
+  --control.fps=10 ^
+  --control.repo_id=shin1107/eval_koch_base_pi0 ^
   --control.warmup_time_s=5 ^
   --control.episode_time_s=30 ^
   --control.reset_time_s=20 ^
   --control.num_episodes=20 ^
   --control.push_to_hub=true ^
-  --control.policy.path=trainedmodel\sirius\koch_base_pi0fast\pretrained_model
+  --control.policy.path=trainedmodel\sirius\koch_base_pi0\pretrained_model

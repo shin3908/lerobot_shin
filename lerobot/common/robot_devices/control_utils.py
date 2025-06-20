@@ -285,6 +285,8 @@ def control_loop(
                 # so action actually sent is saved in the dataset.
                 action = robot.send_action(pred_action)
                 action = {"action": action}
+                action["action"] = action["action"].to(torch.float32)
+
 
         if dataset is not None:
             frame = {**observation, **action, "task": single_task}
