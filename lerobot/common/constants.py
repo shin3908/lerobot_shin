@@ -18,10 +18,16 @@ from pathlib import Path
 from huggingface_hub.constants import HF_HOME
 
 OBS_ENV = "observation.environment_state"
+OBS_ENV_STATE = "observation.environment_state"
+OBS_STATE = "observation.state"
 OBS_ROBOT = "observation.state"
 OBS_IMAGE = "observation.image"
 OBS_IMAGES = "observation.images"
 ACTION = "action"
+REWARD = "next.reward"
+
+ROBOTS = "robots"
+TELEOPERATORS = "teleoperators"
 
 # files & directories
 CHECKPOINTS_DIR = "checkpoints"
@@ -37,6 +43,10 @@ SCHEDULER_STATE = "scheduler_state.json"
 # cache dir
 default_cache_path = Path(HF_HOME) / "lerobot"
 HF_LEROBOT_HOME = Path(os.getenv("HF_LEROBOT_HOME", default_cache_path)).expanduser()
+
+# calibration dir
+default_calibration_path = HF_LEROBOT_HOME / "calibration"
+HF_LEROBOT_CALIBRATION = Path(os.getenv("HF_LEROBOT_CALIBRATION", default_calibration_path)).expanduser()
 
 if "LEROBOT_HOME" in os.environ:
     raise ValueError(
