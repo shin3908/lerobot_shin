@@ -109,6 +109,15 @@ def update_policy(
 def train(cfg: TrainPipelineConfig):
     cfg.validate()
     logging.info(pformat(cfg.to_dict()))
+    
+    if hasattr(cfg.dataset, "image_size"):
+        print(f"画像サイズ (image_size): {cfg.dataset.image_size}")
+    if hasattr(cfg.dataset, "resize"):
+        print(f"リサイズ設定 (resize): {cfg.dataset.resize}")
+    if hasattr(cfg.dataset, "input_shape"):
+        print(f"入力shape (input_shape): {cfg.dataset.input_shape}")
+    if hasattr(cfg.dataset, "transform"):
+        print(f"画像変換(transform): {cfg.dataset.transform}")
 
     if cfg.wandb.enable and cfg.wandb.project:
         wandb_logger = WandBLogger(cfg)

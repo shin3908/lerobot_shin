@@ -205,9 +205,9 @@ def record_episode(
     else:
         task_input = None
         
-    import gc
-    gc.disable()
-    gc.collect()
+    # import gc
+    # gc.disable()
+    # gc.collect()
         
     control_loop(
         robot=robot,
@@ -243,12 +243,12 @@ def control_loop(
     if events is None:
         events = {"exit_early": False}
         
-    import gc
-    gc.set_debug(gc.DEBUG_STATS)
-    gc.collect()
-    gc_prev = gc.get_count()
-    gc.set_threshold(2000, 10, 10)
-    gc.disable()
+    # import gc
+    # gc.set_debug(gc.DEBUG_STATS)
+    # gc.collect()
+    # gc_prev = gc.get_count()
+    # gc.set_threshold(2000, 10, 10)
+    # gc.disable()
     
     
 
@@ -308,12 +308,12 @@ def control_loop(
 
         dt_s = time.perf_counter() - start_loop_t
         
-        gc_curr = gc.get_count()
-        if gc_curr != gc_prev:
-            print(f"[Gc] GC count changed: {gc_prev} -> {gc_curr}")
-            gc_prev = gc_curr        
-        if dt_s > 0.5:
-            print(f"[WARN] Loop took {dt_s:.2f}s")
+        # gc_curr = gc.get_count()
+        # if gc_curr != gc_prev:
+        #     print(f"[Gc] GC count changed: {gc_prev} -> {gc_curr}")
+        #     gc_prev = gc_curr        
+        # if dt_s > 0.5:
+        #     print(f"[WARN] Loop took {dt_s:.2f}s")
             
         log_control_info(robot, dt_s, fps=fps)
 
