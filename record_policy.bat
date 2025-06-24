@@ -1,12 +1,13 @@
-python lerobot/scripts/control_robot.py ^
-  --robot.type=koch ^
-  --control.type=record ^
-  --control.single_task="put the block into the corresponding hole" ^
-  --control.fps=30 ^
-  --control.repo_id=shin1107/eval_koch_base_smolvla_pretrained_100000_test ^
-  --control.warmup_time_s=5 ^
-  --control.episode_time_s=30 ^
-  --control.reset_time_s=20 ^
-  --control.num_episodes=80 ^
-  --control.push_to_hub=false ^
-  --control.policy.path=trainedmodel\models\koch_base_smolvla_pretrained\100000\pretrained_model
+python -m lerobot.record ^
+  --robot.type=koch_follower ^
+  --robot.port=COM3 ^ 
+  --robot.id=follower ^ 
+  --robot.cameras="{\"front\": {\"type\": \"opencv\", \"index_or_path\": 0, \"width\": 640, \"height\": 480, \"fps\": 30}, \"top\": {\"type\": \"opencv\", \"index_or_path\": 1, \"width\": 640, \"height\": 480, \"fps\": 30}}" ^
+  --dataset.single_task="put the block into the corresponding hole" ^ 
+  --dataset.repo_id=shin1107/eval_koch_base_smolvla_pretrained_100000_test ^
+  --dataset.episode_time_s=30 ^
+  --dataset.num_episodes=80 ^
+  --teleop.type=koch_leader ^
+  --teleop.port=COM4 ^
+  --teleop.id=leader ^
+  --policy.path=trainedmodel/models/koch_base_smolvla_pretrained/100000/pretrained_model

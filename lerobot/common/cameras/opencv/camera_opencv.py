@@ -137,6 +137,9 @@ class OpenCVCamera(Camera):
         return isinstance(self.videocapture, cv2.VideoCapture) and self.videocapture.isOpened()
 
     def connect(self, warmup: bool = True):
+        # windows apply
+        if platform.system() == "Windows":
+            self.backend = cv2.CAP_DSHOW
         """
         Connects to the OpenCV camera specified in the configuration.
 
