@@ -1,9 +1,11 @@
+set CUDA_VISIBLE_DEVICES=0
+
 python -m lerobot.record ^
   --robot.type=koch_follower ^
-  --robot.port=COM3 ^ 
-  --robot.id=follower ^ 
+  --robot.port=COM3 ^
+  --robot.id=follower ^
   --robot.cameras="{\"front\": {\"type\": \"opencv\", \"index_or_path\": 0, \"width\": 640, \"height\": 480, \"fps\": 30}, \"top\": {\"type\": \"opencv\", \"index_or_path\": 1, \"width\": 640, \"height\": 480, \"fps\": 30}}" ^
-  --dataset.single_task="put the block into the corresponding hole" ^ 
+  --dataset.single_task="put the block into the corresponding hole" ^
   --dataset.repo_id=shin1107/eval_koch_base_smolvla_pretrained_100000_test ^
   --dataset.episode_time_s=30 ^
   --dataset.num_episodes=80 ^
