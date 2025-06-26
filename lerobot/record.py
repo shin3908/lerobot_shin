@@ -289,7 +289,7 @@ def record(cfg: RecordConfig) -> LeRobotDataset:
     listener, events = init_keyboard_listener()
 
     for recorded_episodes in range(cfg.dataset.num_episodes):
-        print(f"\n---Input Task for episode {recorded_episodes + 1}---")
+        print(f"\n---Input Task for episode {dataset.num_episodes + 1}---")
         current_episode_task = input("Task: ").strip()
         log_say(f"Recording episode {dataset.num_episodes} with task: {current_episode_task}", cfg.play_sounds)
         record_loop(
