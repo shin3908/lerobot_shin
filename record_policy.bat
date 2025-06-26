@@ -1,36 +1,33 @@
-REM === 引数チェック ===
-IF "%~1"=="" (
-    echo [ERROR] ステップ数 (例: 100000) を引数として指定してください。
+chcp 65001 >nul  
+
+set /p STEP=Enter STEP (e.g., 100000): 
+set /p SHAPE=Enter SHAPE (circle / octagonal / cross / square): 
+
+IF "%STEP%"=="" (
+    echo [ERROR] STEP is required.
     exit /b 1
 )
-IF "%~2"=="" (
-    echo [ERROR] 形状 (circle / octagonal / cross / square) を引数として指定してください。
+IF "%SHAPE%"=="" (
+    echo [ERROR] SHAPE is required.
     exit /b 1
 )
 
-REM === 変数定義 ===
-set STEP=%~1
-set SHAPE=%~2
-
-REM === SHAPEに応じたタスク文設定 ===
 set TASK=""
 IF "%SHAPE%"=="circle" (
-    set TASK=put the cylinder block into the corresponding SHAPE
+    set TASK=put the cylinder block into the corresponding hole
 ) ELSE IF "%SHAPE%"=="octagonal" (
-    set TASK=put the octagonal pillar block into the corresponding SHAPE
+    set TASK=put the octagonal pillar block into the corresponding hole
 ) ELSE IF "%SHAPE%"=="cross" (
-    set TASK=put the cross columnar block into the corresponding SHAPE
+    set TASK=put the cross columnar block into the corresponding hole
 ) ELSE IF "%SHAPE%"=="square" (
-    set TASK=put the square block into the corresponding SHAPE
+    set TASK=put the square block into the corresponding hole
 ) ELSE (
-    echo [ERROR] 無効な形状が指定されました: %SHAPE%
+    echo [ERROR] Invalid shape specified: %SHAPE%
     exit /b 1
 )
 
-REM === GPU設定 ===
 set CUDA_VISIBLE_DEVICES=0
 
-REM === 実行コマンド ===
 python -m lerobot.record ^
   --robot.type=koch_follower ^
   --robot.port=COM3 ^
@@ -43,4 +40,6 @@ python -m lerobot.record ^
   --teleop.type=koch_leader ^
   --teleop.port=COM4 ^
   --teleop.id=leader ^
+  --dataset.push_to_hub=false ^
   --policy.path=trainedmodel/models/koch_base_smolvla_pretrained/%STEP%/pretrained_model
+  --display_data=true
