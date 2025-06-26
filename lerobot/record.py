@@ -92,7 +92,7 @@ class DatasetRecordConfig:
     # Dataset identifier. By convention it should match '{hf_username}/{dataset_name}' (e.g. `lerobot/test`).
     repo_id: str
     # A short but accurate description of the task performed during the recording (e.g. "Pick the Lego block and drop it in the box on the right.")
-    single_task: str
+    # single_task: str
     # Root directory where the dataset will be stored (e.g. 'dataset/path').
     root: str | Path | None = None
     # Limit the frames per second.
@@ -121,9 +121,9 @@ class DatasetRecordConfig:
     # Not enough threads might cause low camera fps.
     num_image_writer_threads_per_camera: int = 4
 
-    def __post_init__(self):
-        if self.single_task is None:
-            raise ValueError("You need to provide a task as argument in `single_task`.")
+    # def __post_init__(self):
+    #     if self.single_task is None:
+    #         raise ValueError("You need to provide a task as argument in `single_task`.")
 
 
 @dataclass
@@ -167,7 +167,8 @@ def record_loop(
     teleop: Teleoperator | None = None,
     policy: PreTrainedPolicy | None = None,
     control_time_s: int | None = None,
-    single_task: str | None = None,
+    current_episode_task: str | None = None,
+    # single_task: str | None = None,
     display_data: bool = False,
 ):
     if dataset is not None and dataset.fps != fps:
@@ -197,7 +198,8 @@ def record_loop(
                 policy,
                 get_safe_torch_device(policy.config.device),
                 policy.config.use_amp,
-                task=single_task,
+                # task=single_task,
+                task= current_episode_task,
                 robot_type=robot.robot_type,
             )
             action = {key: action_values[i].item() for i, key in enumerate(robot.action_features)}
@@ -218,7 +220,8 @@ def record_loop(
         if dataset is not None:
             action_frame = build_dataset_frame(dataset.features, sent_action, prefix="action")
             frame = {**observation_frame, **action_frame}
-            dataset.add_frame(frame, task=single_task)
+            # dataset.add_frame(frame, task=single_task)
+            dataset.add_frame(frame, task=current_episode_task)
 
         if display_data:
             for obs, val in observation.items():
@@ -286,7 +289,9 @@ def record(cfg: RecordConfig) -> LeRobotDataset:
     listener, events = init_keyboard_listener()
 
     for recorded_episodes in range(cfg.dataset.num_episodes):
-        log_say(f"Recording episode {dataset.num_episodes}", cfg.play_sounds)
+        print(f"\n---Input Task for episode {recorded_episodes + 1}---")
+        current_episode_task = input("Task: ").strip()
+        log_say(f"Recording episode {dataset.num_episodes} with task: {current_episode_task}", cfg.play_sounds)
         record_loop(
             robot=robot,
             events=events,
@@ -295,7 +300,8 @@ def record(cfg: RecordConfig) -> LeRobotDataset:
             policy=policy,
             dataset=dataset,
             control_time_s=cfg.dataset.episode_time_s,
-            single_task=cfg.dataset.single_task,
+            # single_task=cfg.dataset.single_task,
+            current_episode_task=current_episode_task,
             display_data=cfg.display_data,
         )
 
@@ -311,7 +317,8 @@ def record(cfg: RecordConfig) -> LeRobotDataset:
                 fps=cfg.dataset.fps,
                 teleop=teleop,
                 control_time_s=cfg.dataset.reset_time_s,
-                single_task=cfg.dataset.single_task,
+                # single_task=cfg.dataset.single_task,
+                current_episode_task=current_episode_task,
                 display_data=cfg.display_data,
             )
 
