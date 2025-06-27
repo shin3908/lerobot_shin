@@ -57,8 +57,10 @@ python lerobot/scripts/train.py \
   --wandb.enable=true \
   --wandb.project=lerobotsmolvla_base_pretrained
 
+------------------------------------------------------------------------------
 ※ 以下new環境での学習
 ※ smolvla
+※ バッチサイズに注意！！
 export CUDA_VISIBLE_DEVICES=0
 python lerobot/scripts/train.py \
   --policy.path=lerobot/smolvla_base \
@@ -72,11 +74,10 @@ python lerobot/scripts/train.py \
   --wandb.project=lerobot_policy
 
 ※ pi0
-export CUDA_VISIBLE_DEVICES=1
-python lerobot/scripts/train.py \
+CUDA_VISIBLE_DEVICES=1 python lerobot/scripts/train.py \
   --policy.path=lerobot/pi0 \
   --dataset.repo_id=shin1107/koch_new2 \
-  --batch_size=64 \
+  --batch_size=8 \
   --steps=100000 \
   --output_dir=data3/train/new/koch_base_pi0\
   --job_name=act_koch_base_pi0 \
