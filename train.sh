@@ -49,7 +49,7 @@ python lerobot/scripts/train.py \
 ※ smolvlaの学習 cuda指定が必須
 export CUDA_VISIBLE_DEVICES=1
 python lerobot/scripts/train.py \
-  --dataset.repo_id=shin1107/koch_base_episodes \
+  --dataset.repo_id=shin1107/koch_new2 \
   --policy.path=lerobot/smolvla_base \
   --output_dir=data3/train/koch_base_smolvla_pretrained \
   --job_name=act_koch_base_smolvla \
