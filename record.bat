@@ -7,6 +7,6 @@ python -m lerobot.record ^
     --teleop.port=COM4 ^
     --teleop.id=leader ^
     --display_data=true ^
-    --dataset.repo_id=shin1107/koch_new2_test ^
-    --dataset.num_episodes=2 ^
+    --dataset.repo_id=shin1107/koch_new2 ^
+    --dataset.num_episodes=160 ^
     --dataset.push_to_hub=true
