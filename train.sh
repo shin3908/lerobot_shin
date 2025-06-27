@@ -51,8 +51,36 @@ export CUDA_VISIBLE_DEVICES=1
 python lerobot/scripts/train.py \
   --dataset.repo_id=shin1107/koch_new2 \
   --policy.path=lerobot/smolvla_base \
-  --output_dir=data3/train/koch_base_smolvla_pretrained \
+  --output_dir=data3/train/new/koch_base_smolvla_pretrained \
   --job_name=act_koch_base_smolvla \
   --policy.device=cuda \
   --wandb.enable=true \
   --wandb.project=lerobotsmolvla_base_pretrained
+
+※ 以下new環境での学習
+※ smolvla
+export CUDA_VISIBLE_DEVICES=0
+python lerobot/scripts/train.py \
+  --policy.path=lerobot/smolvla_base \
+  --dataset.repo_id=shin1107/koch_new2 \
+  --batch_size=64 \
+  --steps=100000 \
+  --output_dir=data3/train/new/koch_base_smolvla \
+  --job_name=act_koch_base_smolvla \
+  --policy.device=cuda \
+  --wandb.enable=true \
+  --wandb.project=lerobot_policy
+
+※ pi0
+export CUDA_VISIBLE_DEVICES=1
+python lerobot/scripts/train.py \
+  --policy.path=lerobot/pi0 \
+  --dataset.repo_id=shin1107/koch_new2 \
+  --batch_size=64 \
+  --steps=100000 \
+  --output_dir=data3/train/new/koch_base_pi0\
+  --job_name=act_koch_base_pi0 \
+  --policy.device=cuda \
+  --wandb.enable=true \
+  --wandb.project=lerobot_policy
+

@@ -6,7 +6,7 @@ setlocal enabledelayedexpansion
 :: サーバー情報
 set "SERVER_USER=shinsakuo"
 set "SERVER_ADDRESS=192.168.34.12"
-set "SRC_BASE_DIR=/home/shinsakuo/workspace/lerobot_shin/data3/train"
+set "SRC_BASE_DIR=/home/shinsakuo/workspace/lerobot_shin/data3/train/new"
 set "DST_DIR=C:\Users\harry\workspace\lerobot_shin\trainedmodel\models"
 set "TEMP_FILE=_temp_folder_list.txt"
 

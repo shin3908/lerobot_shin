@@ -20,12 +20,12 @@ python -m lerobot.record ^
   --robot.port=COM3 ^
   --robot.id=follower ^
   --robot.cameras="{\"front\": {\"type\": \"opencv\", \"index_or_path\": 0, \"width\": 640, \"height\": 480, \"fps\": 30}, \"top\": {\"type\": \"opencv\", \"index_or_path\": 1, \"width\": 640, \"height\": 480, \"fps\": 30}}" ^
-  --dataset.repo_id=shin1107/eval_koch_base_%MODEL%_pretrained_%STEP%0000 ^
+  --dataset.repo_id=shin1107/eval_koch_base_%MODEL%_%STEP%0000 ^
   --dataset.episode_time_s=30 ^
   --dataset.num_episodes=20 ^
   --teleop.type=koch_leader ^
   --teleop.port=COM4 ^
   --teleop.id=leader ^
   --dataset.push_to_hub=false ^
-  --policy.path=trainedmodel/models/koch_base_%MODEL%_pretrained/%STEP%0000/pretrained_model ^
+  --policy.path=trainedmodel/models/koch_base_%MODEL%/%STEP%0000/pretrained_model ^
   --display_data=true
