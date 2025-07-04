@@ -97,6 +97,102 @@ def is_headless():
         return True
 
 
+def filter_observation_state(observation: dict[str, torch.Tensor], policy: PreTrainedPolicy) -> dict[str, torch.Tensor]:
+    """
+    Filter observation state data based on policy's observation_state_filter configuration.
+    This ensures compatibility when using policies trained with filtered observations.
+    """
+    # Check if the policy has observation filtering configured
+    if not hasattr(policy.config, 'observation_state_filter') or not policy.config.observation_state_filter:
+        # Log info only once to avoid spam
+        if not hasattr(filter_observation_state, '_logged_no_filter'):
+            logging.info("[OBSERVATION FILTER] No observation filtering configured - using all state features")
+            filter_observation_state._logged_no_filter = True
+        return observation
+    
+    # Only filter if observation.state exists
+    if "observation.state" not in observation:
+        return observation
+    
+    state_tensor = observation["observation.state"]
+    filter_terms = policy.config.observation_state_filter
+    
+    # Get state feature names from the normalize_inputs stats or stored names
+    state_names = None
+    
+    # Try to get from stored original names (set during training)
+    if hasattr(policy, '_original_state_names'):
+        state_names = policy._original_state_names
+    
+    # Fall back to normalize_inputs stats
+    if state_names is None and hasattr(policy.normalize_inputs, 'stats') and policy.normalize_inputs.stats:
+        for key, stats in policy.normalize_inputs.stats.items():
+            if key == "observation.state" and "names" in stats:
+                state_names = stats["names"]
+                break
+    
+    if not state_names:
+        # If we don't have names, try to warn and return original observation
+        if not hasattr(filter_observation_state, '_logged_no_names'):
+            logging.warning(
+                f"[OBSERVATION FILTER] Could not find state feature names for policy with observation_state_filter={filter_terms}. "
+                "Skipping observation filtering. This may cause dimension mismatch errors."
+            )
+            filter_observation_state._logged_no_names = True
+        return observation
+    
+    # Log filter configuration only once
+    if not hasattr(filter_observation_state, '_logged_filter_config'):
+        logging.info(
+            f"[OBSERVATION FILTER] Filter configuration: {filter_terms} "
+            f"(available features: {state_names})"
+        )
+        filter_observation_state._logged_filter_config = True
+    
+    # Create indices for filtered features
+    filtered_indices = []
+    
+    for i, name in enumerate(state_names):
+        should_include = False
+        
+        for filter_term in filter_terms:
+            # Check for exact name match
+            if name == filter_term:
+                should_include = True
+                break
+            # Check for suffix match (e.g., "pos" matches "shoulder_pan.pos")
+            elif name.endswith(f".{filter_term}"):
+                should_include = True
+                break
+            # Check for prefix match (e.g., "shoulder_pan" matches "shoulder_pan.pos")
+            elif name.startswith(f"{filter_term}."):
+                should_include = True
+                break
+        
+        if should_include:
+            filtered_indices.append(i)
+    
+    # Filter the state tensor
+    if filtered_indices:
+        filtered_observation = observation.copy()
+        filtered_observation["observation.state"] = state_tensor[:, filtered_indices]
+        logging.info(
+            f"[OBSERVATION FILTER] Applied filter {filter_terms}: "
+            f"reduced observation.state from {state_tensor.shape[1]} to {len(filtered_indices)} features"
+        )
+        return filtered_observation
+    else:
+        # If no features match, create minimal state
+        logging.warning(
+            f"[OBSERVATION FILTER] No state features matched filter terms {filter_terms}. Creating minimal state tensor."
+        )
+        filtered_observation = observation.copy()
+        filtered_observation["observation.state"] = torch.zeros(
+            state_tensor.shape[0], 1, device=state_tensor.device, dtype=state_tensor.dtype
+        )
+        return filtered_observation
+
+
 def predict_action(
     observation: dict[str, np.ndarray],
     policy: PreTrainedPolicy,
@@ -121,6 +217,9 @@ def predict_action(
 
         observation["task"] = task if task else ""
         observation["robot_type"] = robot_type if robot_type else ""
+        
+        # Apply observation filtering if the policy was trained with filtered observations
+        observation = filter_observation_state(observation, policy)
 
         # Compute the next action with the policy
         # based on the current observation

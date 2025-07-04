@@ -59,6 +59,8 @@ python lerobot/scripts/train.py \
 
 ------------------------------------------------------------------------------
 ※ 以下new環境での学習
+※ 必要に応じて--policy.observation_state_filter=["shoulder_pan.pos","elbow_flex.pos","gripper.pos"]や["shoulder_pan","gripper"]、["pos","current"]を利用してobsの内容を変更すること
+※ record.pyでの評価時は、"[OBSERVATION FILTER]"のログでフィルタリング状況が確認できます
 ※ smolvla
 ※ バッチサイズに注意！！
 export CUDA_VISIBLE_DEVICES=0

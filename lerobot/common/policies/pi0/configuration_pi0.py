@@ -49,6 +49,12 @@ class PI0Config(PreTrainedConfig):
     # left and right wrist cameras in addition to the top camera.
     empty_cameras: int = 0
 
+    # Observation filtering: specify which state observations to include by name
+    # Example: ["shoulder_pan.pos", "elbow_flex.pos"] to include only specific observations
+    # Or use suffixes: ["pos"] to include all position data, ["pos", "current"] to include both
+    # If None or empty, all observations are included
+    observation_state_filter: list[str] | None = None
+
     # Converts the joint and gripper values from the standard Aloha space to
     # the space used by the pi internal runtime which was used to train the base model.
     adapt_to_pi_aloha: bool = False
