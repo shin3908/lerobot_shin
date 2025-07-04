@@ -64,7 +64,11 @@ class KochFollower(Robot):
 
     @property
     def _motors_ft(self) -> dict[str, type]:
-        return {f"{motor}.pos": float for motor in self.bus.motors}
+        motors_dict = {}
+        for motor in self.bus.motors:
+            motors_dict[f"{motor}.pos"] = float
+            motors_dict[f"{motor}.current"] = float
+        return motors_dict
 
     @property
     def _cameras_ft(self) -> dict[str, tuple]:
@@ -78,7 +82,7 @@ class KochFollower(Robot):
 
     @cached_property
     def action_features(self) -> dict[str, type]:
-        return self._motors_ft
+        return {f"{motor}.pos": float for motor in self.bus.motors}
 
     @property
     def is_connected(self) -> bool:
@@ -180,6 +184,14 @@ class KochFollower(Robot):
         obs_dict = {f"{motor}.pos": val for motor, val in obs_dict.items()}
         dt_ms = (time.perf_counter() - start) * 1e3
         logger.debug(f"{self} read state: {dt_ms:.1f}ms")
+
+        # Read arm current
+        start = time.perf_counter()
+        current_dict = self.bus.sync_read("Present_Current", num_retry=5)
+        current_dict = {f"{motor}.current": val for motor, val in current_dict.items()}
+        obs_dict.update(current_dict)
+        dt_ms = (time.perf_counter() - start) * 1e3
+        logger.debug(f"{self} read current: {dt_ms:.1f}ms")
 
         # Capture images from cameras
         for cam_key, cam in self.cameras.items():
