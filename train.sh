@@ -80,6 +80,7 @@ python lerobot/scripts/train.py \
 
 python lerobot/scripts/train.py \
   --config_path=configs/smolvla_pos_only.yaml \
+  --policy.path=lerobot/smolvla_base \
   --dataset.repo_id=shin1107/koch_new_fb \
   --batch_size=64 \
   --steps=100000 \
@@ -92,6 +93,7 @@ python lerobot/scripts/train.py \
 ※ pi0 with position only
 CUDA_VISIBLE_DEVICES=1 python lerobot/scripts/train.py \
   --config_path=configs/pi0_pos_only.yaml \
+  --policy.path=lerobot/pi0 \
   --dataset.repo_id=shin1107/koch_new_fb \
   --batch_size=8 \
   --steps=100000 \
