@@ -1,0 +1,4 @@
+# SmolVLA configuration with position and current observation filtering
+observation_state_filter:
+  - "pos"
+  - "current"

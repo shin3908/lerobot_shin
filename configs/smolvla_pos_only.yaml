@@ -1,0 +1,3 @@
+# SmolVLA configuration with position-only observation filtering
+observation_state_filter:
+  - "pos"

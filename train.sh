@@ -59,11 +59,10 @@ python lerobot/scripts/train.py \
 
 ------------------------------------------------------------------------------
 ※ 以下new環境での学習
-※ 必要に応じて以下のようにobsの内容を変更すること:
-※   --policy.observation_state_filter='["pos"]' (位置データのみ)
-※   --policy.observation_state_filter='["pos","current"]' (位置+電流データ)
-※   --policy.observation_state_filter='["shoulder_pan.pos","elbow_flex.pos","gripper.pos"]' (特定の位置データ)
-※   --policy.observation_state_filter='["shoulder_pan","gripper"]' (特定のモーターの全データ)
+※ observation_state_filterを使用するには、YAMLファイルを使用してください:
+※   --config_path=configs/smolvla_pos_only.yaml (位置データのみ)
+※   --config_path=configs/smolvla_pos_current.yaml (位置+電流データ)
+※ または、コマンドラインから直接は機能しない可能性があります
 ※ record.pyでの評価時は、"[OBSERVATION FILTER]"のログでフィルタリング状況が確認できる
 ※ smolvla
 ※ バッチサイズに注意！！
@@ -80,8 +79,7 @@ python lerobot/scripts/train.py \
   --wandb.project=lerobot_policy
 
 python lerobot/scripts/train.py \
-  --policy.path=lerobot/smolvla_base \
-  --policy.observation_state_filter='["pos"]' \
+  --config_path=configs/smolvla_pos_only.yaml \
   --dataset.repo_id=shin1107/koch_new_fb \
   --batch_size=64 \
   --steps=100000 \
@@ -91,14 +89,14 @@ python lerobot/scripts/train.py \
   --wandb.enable=true \
   --wandb.project=lerobot_policy
 
-※ pi0
+※ pi0 with position only
 CUDA_VISIBLE_DEVICES=1 python lerobot/scripts/train.py \
-  --policy.path=lerobot/pi0 \
+  --config_path=configs/pi0_pos_only.yaml \
   --dataset.repo_id=shin1107/koch_new_fb \
   --batch_size=8 \
   --steps=100000 \
-  --output_dir=data3/train/new/koch_base_pi0 \
-  --job_name=act_koch_base_pi0 \
+  --output_dir=data3/train/new/koch_base_pi0_pos \
+  --job_name=act_koch_base_pi0_pos \
   --policy.device=cuda \
   --wandb.enable=true \
   --wandb.project=lerobot_policy
