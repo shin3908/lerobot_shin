@@ -1,0 +1,49 @@
+# SmolVLA Configuration with PCA Compression
+# This configuration uses Principal Component Analysis for dimension compression
+# to preserve maximum information when compressing 12D Koch observations to 6D SO100 format
+
+# Base configuration
+policy:
+  type: smolvla
+  
+  # Use PCA compression for maximum information preservation
+  dimension_compression_method: "pca"
+  enable_dimension_compression: true
+  
+  # Observation filtering - include both position and current data
+  observation_state_filter:
+    - "pos"
+    - "current"
+  
+  # Standard SmolVLA settings
+  n_obs_steps: 1
+  chunk_size: 50
+  n_action_steps: 50
+  max_state_dim: 32
+  max_action_dim: 32
+  
+  # Training settings
+  freeze_vision_encoder: true
+  train_expert_only: true
+  train_state_proj: true
+
+# Dataset configuration
+dataset:
+  repo_id: "shin1107/koch_new_fb"
+  
+# Training configuration
+steps: 200000
+batch_size: 64
+save_freq: 10000
+eval_freq: 10000
+log_freq: 100
+
+# Optimizer settings
+optimizer:
+  lr: 1e-4
+  weight_decay: 1e-10
+  
+# Scheduler settings
+scheduler:
+  warmup_steps: 1000
+  decay_steps: 30000

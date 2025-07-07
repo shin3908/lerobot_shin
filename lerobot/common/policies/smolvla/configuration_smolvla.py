@@ -55,6 +55,16 @@ class SmolVLAConfig(PreTrainedConfig):
     # If None or empty, all observations are included
     observation_state_filter: list[str] | None = None
 
+    # Dimension compression settings for pretrained models
+    # When loading pretrained weights with different observation dimensions,
+    # specify the compression method to use
+    # Options: "auto", "position_selection", "weighted_groups", "pca", "uniform_sampling"
+    # "auto" automatically selects the best method based on dimensions
+    dimension_compression_method: str = "auto"
+    
+    # Whether to enable dimension compression when loading pretrained weights
+    enable_dimension_compression: bool = True
+
     # Converts the joint and gripper values from the standard Aloha space to
     # the space used by the pi internal runtime which was used to train the base model.
     adapt_to_pi_aloha: bool = False

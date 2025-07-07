@@ -57,6 +57,17 @@ import torch.nn.functional as F  # noqa: N812
 from torch import Tensor, nn
 from transformers import AutoTokenizer
 
+try:
+    from sklearn.decomposition import PCA
+    HAS_SKLEARN = True
+except ImportError:
+    HAS_SKLEARN = False
+    import warnings
+    warnings.warn(
+        "sklearn is not available. PCA compression will not be available. "
+        "Install scikit-learn for advanced compression methods: pip install scikit-learn"
+    )
+
 from lerobot.common.constants import ACTION, OBS_STATE
 from lerobot.common.policies.normalize import Normalize, Unnormalize
 from lerobot.common.policies.pi0.configuration_pi0 import PI0Config
@@ -66,6 +77,11 @@ from lerobot.common.policies.pi0.paligemma_with_expert import (
 )
 from lerobot.common.policies.pretrained import PreTrainedPolicy
 from lerobot.common.utils.utils import get_safe_dtype
+from lerobot.common.policies.smolvla.modeling_smolvla import (
+    compress_state_dimensions,
+    get_compression_info,
+    standardise_state_dict,
+)
 
 
 def create_sinusoidal_pos_embedding(
@@ -252,7 +268,7 @@ class PI0Policy(PreTrainedPolicy):
             config.output_features, config.normalization_mapping, dataset_stats
         )
         self.unnormalize_outputs = Unnormalize(
-            config.output_features, config.normalization_mapping, dataset_stats
+            config.outputFeatures, config.normalization_mapping, dataset_stats
         )
 
         self.language_tokenizer = AutoTokenizer.from_pretrained("google/paligemma-3b-pt-224")
@@ -870,3 +886,92 @@ class PI0FlowMatching(nn.Module):
         suffix_out = suffix_out.to(dtype=torch.float32)
         v_t = self.action_out_proj(suffix_out)
         return v_t
+
+    # Override _load_as_safetensor to support dimension compression
+    @classmethod
+    def _load_as_safetensor(
+        cls,
+        model: "PI0Policy",
+        model_file: str,
+        map_location: str,
+        strict: bool,
+    ):
+        # Get compression settings from config if available
+        compression_method = getattr(model.config, 'dimension_compression_method', 'auto')
+        enable_compression = getattr(model.config, 'enable_dimension_compression', True)
+        
+        return load_pi0(
+            model,
+            model_file,
+            device=map_location,
+            compression_method=compression_method,
+            enable_compression=enable_compression,
+        )
+
+def load_pi0(
+    model: torch.nn.Module,
+    filename: str,
+    *,
+    device: str = "cpu",
+    checkpoint_keys_mapping: str = "",
+    compression_method: str = "auto",
+    enable_compression: bool = True,
+) -> torch.nn.Module:
+    """
+    Load Pi0 model with optional dimension compression for observation state.
+    
+    Args:
+        model: Pi0 model to load state into
+        filename: Path to model checkpoint file
+        device: Device to load model on
+        checkpoint_keys_mapping: Optional key mapping for checkpoint
+        compression_method: Compression method for dimension mismatch
+        enable_compression: Whether to enable dimension compression
+        
+    Returns:
+        Model with loaded state
+    """
+    import safetensors
+    
+    state_dict = safetensors.torch.load_file(filename, device=device)
+
+    # Optional user-supplied renames
+    if checkpoint_keys_mapping and "//" in checkpoint_keys_mapping:
+        # Simple rename function (borrowed from SmolVLA)
+        rename_dict = {}
+        for mapping in checkpoint_keys_mapping.split(","):
+            if "//" in mapping:
+                old_key, new_key = mapping.split("//")
+                rename_dict[old_key] = new_key
+        
+        new_checkpoint = {}
+        for k, v in state_dict.items():
+            for old_key, new_key in rename_dict.items():
+                if old_key in k:
+                    k = k.replace(old_key, new_key)
+            new_checkpoint[k] = v
+        state_dict = new_checkpoint
+
+    # Apply dimension compression if enabled
+    if enable_compression:
+        state_dict, _ = standardise_state_dict(
+            state_dict, 
+            set(model.state_dict().keys()),
+            compress_observation_state=enable_compression,
+            compression_method=compression_method
+        )
+
+    # Load state dict with normalization key filtering
+    norm_keys = ("normalize_inputs", "normalize_targets", "unnormalize_outputs")
+    state_dict = {k: v for k, v in state_dict.items() if not k.startswith(norm_keys)}
+
+    missing, unexpected = model.load_state_dict(state_dict, strict=False)
+
+    if not all(key.startswith(norm_keys) for key in missing) or unexpected:
+        print(f"Pi0 loading: {len(missing)} missing keys, {len(unexpected)} unexpected keys")
+        if missing:
+            print(f"Missing keys: {missing[:5]}...")  # Show first 5
+        if unexpected:
+            print(f"Unexpected keys: {unexpected[:5]}...")  # Show first 5
+
+    return model
