@@ -1,3 +1,4 @@
-# SmolVLA configuration with position-only observation filtering
-observation_state_filter:
-  - "pos"
+policy:
+  type: smolvla
+  path: lerobot/smolvla_base
+  observation_state_filter: ["pos"]

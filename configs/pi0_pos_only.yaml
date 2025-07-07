@@ -1,3 +1,4 @@
 policy:
+  type: pi0
   path: lerobot/pi0
   observation_state_filter: ["pos"]
