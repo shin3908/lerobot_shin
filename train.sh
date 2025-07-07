@@ -59,7 +59,11 @@ python lerobot/scripts/train.py \
 
 ------------------------------------------------------------------------------
 ※ 以下new環境での学習
-※ 必要に応じて--policy.observation_state_filter=["shoulder_pan.pos","elbow_flex.pos","gripper.pos"]や["shoulder_pan","gripper"]、["pos","current"]を利用してobsの内容を変更すること
+※ 必要に応じて以下のようにobsの内容を変更すること:
+※   --policy.observation_state_filter='["pos"]' (位置データのみ)
+※   --policy.observation_state_filter='["pos","current"]' (位置+電流データ)
+※   --policy.observation_state_filter='["shoulder_pan.pos","elbow_flex.pos","gripper.pos"]' (特定の位置データ)
+※   --policy.observation_state_filter='["shoulder_pan","gripper"]' (特定のモーターの全データ)
 ※ record.pyでの評価時は、"[OBSERVATION FILTER]"のログでフィルタリング状況が確認できる
 ※ smolvla
 ※ バッチサイズに注意！！
@@ -77,7 +81,7 @@ python lerobot/scripts/train.py \
 
 python lerobot/scripts/train.py \
   --policy.path=lerobot/smolvla_base \
-  --policy.observation_state_filter=["pos"] \
+  --policy.observation_state_filter='["pos"]' \
   --dataset.repo_id=shin1107/koch_new_fb \
   --batch_size=64 \
   --steps=100000 \
@@ -93,7 +97,7 @@ CUDA_VISIBLE_DEVICES=1 python lerobot/scripts/train.py \
   --dataset.repo_id=shin1107/koch_new_fb \
   --batch_size=8 \
   --steps=100000 \
-  --output_dir=data3/train/new/koch_base_pi0\
+  --output_dir=data3/train/new/koch_base_pi0 \
   --job_name=act_koch_base_pi0 \
   --policy.device=cuda \
   --wandb.enable=true \
