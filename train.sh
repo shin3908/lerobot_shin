@@ -164,7 +164,8 @@ python lerobot/scripts/train.py \
   --wandb.project=lerobot_policy
 
 ※ pi0 with position only
-CUDA_VISIBLE_DEVICES=1 python lerobot/scripts/train.py \
+CUDA_VISIBLE_DEVICES=1 
+python lerobot/scripts/train.py \
   --config_path=configs/pi0_pos_only.yaml \
   --policy.path=lerobot/pi0 \
   --dataset.repo_id=shin1107/koch_new_fb \

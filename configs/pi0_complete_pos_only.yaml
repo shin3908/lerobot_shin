@@ -1,0 +1,39 @@
+# Complete training configuration for Pi0 with position-only filtering
+# This replaces all CLI arguments with YAML configuration
+
+# Policy configuration
+policy:
+  path: "lerobot/pi0"
+  device: "cuda"
+  
+  # Observation filtering (position data only)
+  observation_state_filter: ["pos"]
+  
+  # Training settings
+  freeze_vision_encoder: true
+  train_expert_only: true
+
+# Dataset configuration
+dataset:
+  repo_id: "shin1107/koch_new_fb"
+
+# Training parameters
+batch_size: 8
+steps: 100000
+
+# Output settings
+output_dir: "data3/train/new/koch_base_pi0_pos"
+job_name: "act_koch_base_pi0_pos"
+
+# Weights & Biases logging
+wandb:
+  enable: true
+  project: "lerobot_policy"
+
+# Checkpointing
+save_freq: 10000
+eval_freq: 10000
+log_freq: 100
+
+# Environment variable equivalent
+# Use: export CUDA_VISIBLE_DEVICES=1

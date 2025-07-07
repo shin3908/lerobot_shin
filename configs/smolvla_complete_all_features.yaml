@@ -1,0 +1,36 @@
+# Complete training configuration for SmolVLA with pretrained base model
+# This replaces all CLI arguments with YAML configuration
+
+# Policy configuration
+policy:
+  path: "lerobot/smolvla_base"
+  device: "cuda"
+  
+  # Advanced compression settings
+  dimension_compression_method: "auto"
+  enable_dimension_compression: true
+  
+  # Observation filtering (include all features - no filtering)
+  # observation_state_filter: null  # Use all features
+  
+
+# Dataset configuration
+dataset:
+  repo_id: "shin1107/koch_new_fb"
+
+# Training parameters
+batch_size: 64
+steps: 100000
+
+# Output settings
+output_dir: "data3/train/new/koch_base_smolvla_fb_all"
+job_name: "act_koch_base_smolvla_fb_all"
+
+# Weights & Biases logging
+wandb:
+  enable: true
+  project: "lerobot_policy"
+
+
+# Environment variable equivalent
+# Use: export CUDA_VISIBLE_DEVICES=0

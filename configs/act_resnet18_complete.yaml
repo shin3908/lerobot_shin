@@ -1,0 +1,35 @@
+# Complete training configuration for ACT policy with ResNet18 backbone
+# This replaces the original ACT training command with YAML configuration
+
+# Policy configuration
+policy:
+  type: "act"
+  device: "cuda"
+  vision_backbone: "resnet18"
+  pretrained_backbone_weights: "ResNet18_Weights.IMAGENET1K_V1"
+
+# Dataset configuration
+dataset:
+  repo_id: "shin1107/koch_base"
+
+# Training parameters
+batch_size: 32
+steps: 200000
+
+# Output settings
+output_dir: "outputs/train/koch_base_resnet18"
+job_name: "act_koch_base_resnet18"
+
+# Weights & Biases logging
+wandb:
+  enable: true
+  project: "lerobot_base"
+
+# Checkpointing and evaluation
+save_freq: 10000
+eval_freq: 10000
+log_freq: 100
+
+# Environment variable equivalent
+# Use: export CUDA_VISIBLE_DEVICES=1
+# Use: export TMPDIR=/data3/shinsakuo/tmp

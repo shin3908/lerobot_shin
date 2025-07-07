@@ -1,0 +1,49 @@
+# Complete training configuration for SmolVLA from scratch (no pretrained model)
+# This configuration is for training SmolVLA without loading pretrained weights
+
+# Policy configuration
+policy:
+  type: "smolvla"
+  device: "cuda"
+  
+  # Advanced compression settings (not needed for training from scratch)
+  dimension_compression_method: "auto"
+  enable_dimension_compression: false
+  
+  # Observation filtering (position data only)
+  observation_state_filter: ["pos"]
+  
+  # Training settings
+  freeze_vision_encoder: false
+  train_expert_only: false
+
+# Dataset configuration
+dataset:
+  repo_id: "shin1107/koch_new_fb"
+
+# Training parameters
+batch_size: 32
+steps: 200000
+
+# Output settings
+output_dir: "outputs/train/smolvla_from_scratch_pos"
+job_name: "smolvla_from_scratch_pos"
+
+# Weights & Biases logging
+wandb:
+  enable: true
+  project: "lerobot_policy"
+
+# Checkpointing and evaluation
+save_freq: 10000
+eval_freq: 10000
+log_freq: 100
+
+# Optimization settings
+optimizer:
+  lr: 1e-4
+  weight_decay: 1e-10
+
+scheduler:
+  warmup_steps: 1000
+  decay_steps: 30000

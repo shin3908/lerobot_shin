@@ -670,7 +670,11 @@ class SmolVLAPolicy(PreTrainedPolicy):
                 state_dim += feature.shape[0] if hasattr(feature, 'shape') else 1
         
         if state_dim > 0:
-            self.config.max_state_dim = max(self.config.max_state_dim, state_dim)
+            # Set max_state_dim to the actual filtered dimension
+            # This ensures that if filtering reduces dimensions (e.g., 12D->6D), 
+            # the model uses the correct dimension without unnecessary compression
+            self.config.max_state_dim = state_dim
+            print(f"[SmolVLA] Updated max_state_dim to {state_dim} after filtering")
     
     def _store_original_state_names(self):
         """Store original state names for inference-time filtering compatibility."""

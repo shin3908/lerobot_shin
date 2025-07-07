@@ -1,0 +1,29 @@
+# Complete training configuration for Pi0Fast fine-tuning
+# This replaces the original Pi0Fast fine-tuning command with YAML configuration
+
+# Policy configuration
+policy:
+  path: "lerobot/pi0fast_base"
+  device: "cuda"
+
+# Dataset configuration
+dataset:
+  repo_id: "shin1107/koch_base_episodes"
+
+# Training parameters
+batch_size: 8
+steps: 200000
+
+# Output settings
+output_dir: "data3/train/koch_base_pi0fast_pretrained"
+job_name: "act_koch_base_pi0fast"
+
+# Weights & Biases logging
+wandb:
+  enable: true
+  project: "lerobotpi_base_pretrained"
+
+# Checkpointing and evaluation
+save_freq: 10000
+eval_freq: 10000
+log_freq: 100
