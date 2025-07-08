@@ -873,6 +873,7 @@ class PI0FlowMatching(nn.Module):
         suffix_out = suffix_out.to(dtype=torch.float32)
         v_t = self.action_out_proj(suffix_out)
         return v_t
+<<<<<<< HEAD
 
     # Override _load_as_safetensor to support dimension compression
     @classmethod
@@ -944,3 +945,5 @@ def load_pi0(
             print(f"Unexpected keys: {unexpected[:5]}...")  # Show first 5
 
     return model
+=======
+>>>>>>> parent of c7f712d2 (apply dimention compression)

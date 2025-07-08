@@ -63,17 +63,6 @@ import torch.nn.functional as F  # noqa: N812
 from torch import Tensor, nn
 from transformers import AutoProcessor
 
-try:
-    from sklearn.decomposition import PCA
-    HAS_SKLEARN = True
-except ImportError:
-    HAS_SKLEARN = False
-    import warnings
-    warnings.warn(
-        "sklearn is not available. PCA compression will not be available. "
-        "Install scikit-learn for advanced compression methods: pip install scikit-learn"
-    )
-
 from lerobot.common.constants import ACTION, OBS_STATE
 from lerobot.common.policies.normalize import (
     Normalize,
@@ -99,249 +88,19 @@ def canonicalise(k: str) -> str:
     return _VARIANT_RE.sub(".buffer_", k)
 
 
-def compress_state_dimensions(
-    tensor: torch.Tensor, 
-    source_dim: int, 
-    target_dim: int, 
-    method: str = "auto"
-) -> torch.Tensor:
-    """
-    Compress state tensor from source_dim to target_dim while preserving maximum information.
-    Uses different strategies based on specified method or automatically selects best method.
-    
-    Args:
-        tensor: Input tensor to compress
-        source_dim: Source dimension size
-        target_dim: Target dimension size
-        method: Compression method ("auto", "position_selection", "weighted_groups", "pca", "uniform_sampling")
-        
-    Returns:
-        Compressed tensor with target_dim dimensions
-    """
-    if source_dim == target_dim:
-        return tensor
-    
-    if source_dim < target_dim:
-        # Pad with zeros if source is smaller
-        if tensor.dim() == 1:
-            padding = torch.zeros(target_dim - source_dim, dtype=tensor.dtype, device=tensor.device)
-            return torch.cat([tensor, padding], dim=0)
-        else:
-            padding_shape = tensor.shape[:-1] + (target_dim - source_dim,)
-            padding = torch.zeros(padding_shape, dtype=tensor.dtype, device=tensor.device)
-            return torch.cat([tensor, padding], dim=-1)
-    
-    # Auto-select compression method if not specified
-    if method == "auto":
-        if source_dim == 12 and target_dim == 6:
-            method = "position_selection"
-        elif source_dim <= target_dim * 2:
-            method = "weighted_groups"
-        elif HAS_SKLEARN and source_dim > target_dim * 2:
-            method = "pca"
-        else:
-            method = "uniform_sampling"
-    
-    # Apply the selected compression method
-    if method == "position_selection" and source_dim == 12 and target_dim == 6:
-        # Use position features (every other element) for Koch -> SO100 compression
-        pos_indices = torch.arange(0, 12, 2)  # [0, 2, 4, 6, 8, 10]
-        if tensor.dim() == 1:
-            return tensor[pos_indices]
-        else:
-            return tensor[..., pos_indices]
-    
-    elif method == "weighted_groups":
-        return _compress_with_weighted_groups(tensor, source_dim, target_dim)
-    
-    elif method == "pca" and HAS_SKLEARN:
-        try:
-            return _compress_with_pca(tensor, source_dim, target_dim)
-        except Exception:
-            # Fall back to uniform sampling if PCA fails
-            method = "uniform_sampling"
-    
-    # Default to uniform sampling
-    if method == "uniform_sampling" or method == "pca":  # PCA fallback
-        indices = torch.linspace(0, source_dim - 1, target_dim, dtype=torch.long)
-        if tensor.dim() == 1:
-            return tensor[indices]
-        else:
-            return tensor[..., indices]
-    
-    # If unknown method, fall back to uniform sampling
-    indices = torch.linspace(0, source_dim - 1, target_dim, dtype=torch.long)
-    if tensor.dim() == 1:
-        return tensor[indices]
-    else:
-        return tensor[..., indices]
-
-
-def _compress_with_weighted_groups(tensor: torch.Tensor, source_dim: int, target_dim: int) -> torch.Tensor:
-    """
-    Compresses tensor by grouping source dimensions and using weighted averaging.
-    Preserves more information than simple truncation.
-    """
-    group_size = source_dim // target_dim
-    remainder = source_dim % target_dim
-    
-    compressed_parts = []
-    start_idx = 0
-    
-    for i in range(target_dim):
-        # Some groups get an extra element if there's a remainder
-        current_group_size = group_size + (1 if i < remainder else 0)
-        end_idx = start_idx + current_group_size
-        
-        if tensor.dim() == 1:
-            group = tensor[start_idx:end_idx]
-        else:
-            group = tensor[..., start_idx:end_idx]
-        
-        # Use weighted average (higher weight for first elements in group)
-        weights = torch.linspace(1.0, 0.6, current_group_size, device=tensor.device)
-        weights = weights / weights.sum()
-        
-        if tensor.dim() == 1:
-            compressed_value = torch.sum(group * weights)
-        else:
-            # Expand weights to match tensor dimensions
-            weight_shape = (1,) * (tensor.dim() - 1) + (current_group_size,)
-            weights = weights.view(weight_shape)
-            compressed_value = torch.sum(group * weights, dim=-1)
-        
-        compressed_parts.append(compressed_value)
-        start_idx = end_idx
-    
-    return torch.stack(compressed_parts, dim=-1)
-
-
-def _compress_with_pca(tensor: torch.Tensor, source_dim: int, target_dim: int) -> torch.Tensor:
-    """
-    Compresses tensor using PCA to preserve maximum variance.
-    Only works if sklearn is available.
-    """
-    if not HAS_SKLEARN:
-        raise ImportError("sklearn is required for PCA compression")
-    
-    original_shape = tensor.shape
-    device = tensor.device
-    dtype = tensor.dtype
-    
-    # Reshape to 2D for PCA
-    if tensor.dim() == 1:
-        # For 1D tensors, create a dummy batch dimension
-        data = tensor.unsqueeze(0).cpu().numpy()
-        is_1d = True
-    else:
-        # Flatten all dimensions except the last one
-        data = tensor.view(-1, source_dim).cpu().numpy()
-        is_1d = False
-    
-    # Apply PCA
-    pca = PCA(n_components=target_dim)
-    compressed_data = pca.fit_transform(data)
-    
-    # Convert back to tensor
-    compressed_tensor = torch.tensor(compressed_data, dtype=dtype, device=device)
-    
-    if is_1d:
-        return compressed_tensor.squeeze(0)
-    else:
-        # Reshape back to original shape with new last dimension
-        new_shape = original_shape[:-1] + (target_dim,)
-        return compressed_tensor.view(new_shape)
-
-
-def get_compression_info(source_dim: int, target_dim: int) -> dict:
-    """
-    Returns information about the compression method that will be used.
-    
-    Args:
-        source_dim: Source dimension size
-        target_dim: Target dimension size
-        
-    Returns:
-        Dictionary with compression method info
-    """
-    if source_dim == target_dim:
-        return {"method": "no_compression", "description": "No compression needed"}
-    elif source_dim < target_dim:
-        return {"method": "padding", "description": f"Padding from {source_dim}D to {target_dim}D"}
-    elif source_dim == 12 and target_dim == 6:
-        return {"method": "position_selection", "description": "Koch to SO100: selecting position features"}
-    elif source_dim <= target_dim * 2:
-        return {"method": "weighted_groups", "description": "Weighted grouping with information preservation"}
-    elif HAS_SKLEARN and source_dim > target_dim * 2:
-        return {"method": "pca", "description": "PCA-based compression to preserve maximum variance"}
-    else:
-        return {"method": "uniform_sampling", "description": "Uniform sampling fallback"}
-
-
 def standardise_state_dict(
-    checkpoint: dict[str, torch.Tensor], 
-    ref_keys: set[str], 
-    *, 
-    verbose: bool = True,
-    compress_observation_state: bool = True,
-    compression_method: str = "auto"
+    checkpoint: dict[str, torch.Tensor], ref_keys: set[str], *, verbose: bool = True
 ) -> tuple[dict[str, torch.Tensor], list[str]]:
     """
     • Re-keys `checkpoint ` so that every entry matches the *reference* key set.
     • If several variant keys collapse to the same canonical name we keep the
       first one and log the collision.
-    • Optionally compresses observation.state dimensions to match target model using
-      improved compression methods that preserve maximum information.
     • Returns the new dict + a list of entries that could not be matched.
     """
     out, collisions, unmatched = {}, {}, []
 
-    # Track compression operations for logging
-    compression_operations = []
-    
     for k, v in checkpoint.items():
         canon = canonicalise(k)
-        
-        # Handle observation state dimension compression
-        if compress_observation_state and 'buffer_observation_state' in canon:
-            if canon in ref_keys:
-                # Check if dimensions need compression
-                if hasattr(v, 'shape') and len(v.shape) >= 1:
-                    source_dim = v.shape[-1] if v.dim() > 0 else 1
-                    
-                    # Find target dimension from a reference tensor in the model
-                    target_dim = None
-                    for ref_k in ref_keys:
-                        if 'normalize_inputs.buffer_observation_state.mean' in ref_k:
-                            # We need to infer target dim - assume 6 for SO100-trained models
-                            target_dim = 6
-                            break
-                    
-                    if target_dim and source_dim != target_dim:
-                        # Get compression method info
-                        actual_method = compression_method
-                        if actual_method == "auto":
-                            compression_info = get_compression_info(source_dim, target_dim)
-                            actual_method = compression_info['method']
-                        
-                        if verbose:
-                            print(f"[standardise_state_dict] Compressing {canon} from {source_dim}D to {target_dim}D")
-                            print(f"[standardise_state_dict] Using compression method: {actual_method}")
-                        
-                        # Apply compression using the improved method
-                        original_tensor = v.clone()
-                        v = compress_state_dimensions(v, source_dim, target_dim, actual_method)
-                        
-                        # Log compression operation
-                        compression_operations.append({
-                            'key': canon,
-                            'source_dim': source_dim,
-                            'target_dim': target_dim,
-                            'method': actual_method,
-                            'original_shape': original_tensor.shape,
-                            'compressed_shape': v.shape
-                        })
-        
         if canon in ref_keys:
             if canon in out:  # duplicate after collapsing
                 collisions.setdefault(canon, []).append(k)
@@ -355,15 +114,8 @@ def standardise_state_dict(
             print(f"[standardise_state_dict] '{canon}'  ←  {variants}")
         if unmatched:
             print(f"[standardise_state_dict] kept {len(unmatched)} unmatched keys")
-        
-        # Log compression summary
-        if compression_operations:
-            print(f"[standardise_state_dict] Applied {len(compression_operations)} compression operations:")
-            for op in compression_operations:
-                print(f"  - {op['key']}: {op['original_shape']} -> {op['compressed_shape']} using {op['method']}")
 
     out.update({k: checkpoint[k] for k in unmatched})
-    return out, unmatched
     return out, unmatched
 
 
@@ -396,8 +148,6 @@ def load_smolvla(
     *,
     device: str = "cpu",
     checkpoint_keys_mapping: str = "",
-    compression_method: str = "auto",
-    enable_compression: bool = True,
 ) -> torch.nn.Module:
     state_dict = safetensors.torch.load_file(filename, device=device)
 
@@ -405,12 +155,7 @@ def load_smolvla(
     if checkpoint_keys_mapping and "//" in checkpoint_keys_mapping:
         state_dict = rename_checkpoint_keys(state_dict, checkpoint_keys_mapping)
 
-    state_dict, _ = standardise_state_dict(
-        state_dict, 
-        set(model.state_dict().keys()),
-        compress_observation_state=enable_compression,
-        compression_method=compression_method
-    )
+    state_dict, _ = standardise_state_dict(state_dict, set(model.state_dict().keys()))
 
     # HACK(aliberts): to not overwrite normalization parameters as they should come from the dataset
     norm_keys = ("normalize_inputs", "normalize_targets", "unnormalize_outputs")
@@ -698,17 +443,12 @@ class SmolVLAPolicy(PreTrainedPolicy):
         map_location: str,
         strict: bool,
     ):
-        # Get compression settings from config if available
-        compression_method = getattr(model.config, 'dimension_compression_method', 'auto')
-        enable_compression = getattr(model.config, 'enable_dimension_compression', True)
-        
+        safetensors.torch.load_model(model, model_file, strict=strict, device=map_location)
         return load_smolvla(
             model,
             model_file,
             device=map_location,
             checkpoint_keys_mapping="model._orig_mod.//model.",
-            compression_method=compression_method,
-            enable_compression=enable_compression,
         )
 
     def get_optim_params(self) -> dict:
