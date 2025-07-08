@@ -76,7 +76,8 @@ python lerobot/scripts/train.py \
   --job_name=act_koch_base_smolvla_fb_all \
   --policy.device=cuda \
   --wandb.enable=true \
-  --wandb.project=lerobot_policy
+  --wandb.project=lerobot_policy \
+  --policy.max_state_dim=12
 
 python lerobot/scripts/train.py \
   --config_path=configs/smolvla_pos_only.yaml \
