@@ -177,3 +177,14 @@ python lerobot/scripts/train.py \
   --wandb.enable=true \
   --wandb.project=lerobot_policy
 
+python lerobot/scripts/train.py \
+  --policy.path=lerobot/pi0 \
+  --dataset.repo_id=shin1107/koch_new_fb \
+  --batch_size=8 \
+  --steps=100000 \
+  --output_dir=data3/train/new/koch_base_pi0_fb_all \
+  --job_name=act_koch_base_pi0_fb_all \
+  --policy.device=cuda \
+  --wandb.enable=true \
+  --wandb.project=lerobot_policy
+
