@@ -67,8 +67,9 @@ python lerobot/scripts/train.py \
 ※ smolvla
 ※ バッチサイズに注意！！
 export CUDA_VISIBLE_DEVICES=0
+
 python lerobot/scripts/train.py \
-  --policy.path=lerobot/smolvla_base \
+  --policy.path=data3/smolvla_base_dim12 \
   --dataset.repo_id=shin1107/koch_new_fb \
   --batch_size=64 \
   --steps=100000 \
@@ -93,17 +94,6 @@ python lerobot/scripts/train.py \
 
 ※ pi0 with position only
 CUDA_VISIBLE_DEVICES=1 
-python lerobot/scripts/train.py \
-  --config_path=configs/pi0_pos_only.yaml \
-  --policy.path=lerobot/pi0 \
-  --dataset.repo_id=shin1107/koch_new_fb \
-  --batch_size=8 \
-  --steps=100000 \
-  --output_dir=data3/train/new/koch_base_pi0_pos \
-  --job_name=act_koch_base_pi0_pos \
-  --policy.device=cuda \
-  --wandb.enable=true \
-  --wandb.project=lerobot_policy
 
 python lerobot/scripts/train.py \
   --policy.path=lerobot/pi0 \
@@ -116,3 +106,14 @@ python lerobot/scripts/train.py \
   --wandb.enable=true \
   --wandb.project=lerobot_policy
 
+python lerobot/scripts/train.py \
+  --config_path=configs/pi0_pos_only.yaml \
+  --policy.path=lerobot/pi0 \
+  --dataset.repo_id=shin1107/koch_new_fb \
+  --batch_size=8 \
+  --steps=100000 \
+  --output_dir=data3/train/new/koch_base_pi0_pos \
+  --job_name=act_koch_base_pi0_pos \
+  --policy.device=cuda \
+  --wandb.enable=true \
+  --wandb.project=lerobot_policy
