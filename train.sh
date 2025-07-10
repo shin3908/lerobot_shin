@@ -83,7 +83,6 @@ python lerobot/scripts/train.py \
 
 
 python lerobot/scripts/train.py \
-  --cli_policy_observation_state_filter="pos" \
   --policy.path=lerobot/smolvla_base \
   --dataset.repo_id=shin1107/koch_new_fb \
   --batch_size=64 \
@@ -109,13 +108,12 @@ python lerobot/scripts/train.py \
   --wandb.project=lerobot_policy
 
 python lerobot/scripts/train.py \
-  --config_path=configs/pi0_pos_only.yaml \
   --policy.path=lerobot/pi0 \
   --dataset.repo_id=shin1107/koch_new_fb \
   --batch_size=8 \
   --steps=100000 \
-  --output_dir=data3/train/new/koch_base_pi0_wofb \
-  --job_name=act_koch_base_pi0_wofb \
+  --output_dir=data3/train/new/koch_base_pi0_wofb_2 \
+  --job_name=act_koch_base_pi0_wofb_2 \
   --policy.device=cuda \
   --wandb.enable=true \
   --wandb.project=lerobot_policy
