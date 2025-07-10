@@ -66,6 +66,7 @@ python lerobot/scripts/train.py \
 ※ record.pyでの評価時は、"[OBSERVATION FILTER]"のログでフィルタリング状況が確認できる
 ※ smolvla
 ※ バッチサイズに注意！！
+※  --policy.max_state_dim=12
 export CUDA_VISIBLE_DEVICES=0
 
 python lerobot/scripts/train.py \
@@ -73,12 +74,12 @@ python lerobot/scripts/train.py \
   --dataset.repo_id=shin1107/koch_new_fb \
   --batch_size=64 \
   --steps=100000 \
-  --output_dir=data3/train/new/koch_base_smolvla_fb_all \
-  --job_name=act_koch_base_smolvla_fb_all \
+  --output_dir=data3/train/new/koch_base_smolvla_fb_all_2 \
+  --job_name=act_koch_base_smolvla_fb_all_2 \
   --policy.device=cuda \
   --wandb.enable=true \
-  --wandb.project=lerobot_policy \
-  --policy.max_state_dim=12
+  --wandb.project=lerobot_policy
+
 
 python lerobot/scripts/train.py \
   --config_path=configs/smolvla_pos_only.yaml \
