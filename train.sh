@@ -83,13 +83,12 @@ python lerobot/scripts/train.py \
 
 
 python lerobot/scripts/train.py \
-  --config_path=configs/smolvla_pos_only.yaml \
   --policy.path=lerobot/smolvla_base \
   --dataset.repo_id=shin1107/koch_new_fb \
   --batch_size=64 \
   --steps=100000 \
-  --output_dir=data3/train/new/koch_base_smolvla_wofb \
-  --job_name=act_koch_base_smolvla_wofb \
+  --output_dir=data3/train/new/koch_base_smolvla_wofb_2 \
+  --job_name=act_koch_base_smolvla_wofb_2 \
   --policy.device=cuda \
   --wandb.enable=true \
   --wandb.project=lerobot_policy
