@@ -77,7 +77,6 @@ class TrainPipelineConfig(HubMixin):
         self.checkpoint_path = None
         
         # ここで、CLIから受け取った値を実際のpolicy設定に伝播させます。
-        super().__post_init__() # 親クラスの__post_init__を呼び出すことを忘れないでください
 
         print(f"DEBUG: __post_init__ entered. cli_policy_observation_state_filter: {self.cli_policy_observation_state_filter}")
         print(f"DEBUG: Initial self.policy type: {type(self.policy)}")

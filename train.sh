@@ -83,6 +83,7 @@ python lerobot/scripts/train.py \
 
 
 python lerobot/scripts/train.py \
+  --cli_policy_observation_state_filter="pos" \
   --policy.path=lerobot/smolvla_base \
   --dataset.repo_id=shin1107/koch_new_fb \
   --batch_size=64 \
