@@ -66,11 +66,12 @@ python lerobot/scripts/train.py \
 ※ record.pyでの評価時は、"[OBSERVATION FILTER]"のログでフィルタリング状況が確認できる
 ※ smolvla
 ※ バッチサイズに注意！！
-※  --policy.max_state_dim=12
+※  --policy.max_state_dim=12 --policy.path=data3/smolvla_base_dim12 
 export CUDA_VISIBLE_DEVICES=0
 
 python lerobot/scripts/train.py \
-  --policy.path=data3/smolvla_base_dim12 \
+  --config_path=configs/smolvla_fb_all.yaml \
+  --policy.path=lerobot/smolvla_base \
   --dataset.repo_id=shin1107/koch_new_fb \
   --batch_size=64 \
   --steps=100000 \
