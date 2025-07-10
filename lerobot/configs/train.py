@@ -28,6 +28,7 @@ from lerobot.common.utils.hub import HubMixin
 from lerobot.configs import parser
 from lerobot.configs.default import DatasetConfig, EvalConfig, WandBConfig
 from lerobot.configs.policies import PreTrainedConfig
+from lerobot.common.policies.smolvla.configuration_smolvla import SmolVLAConfig # <--- この行を追加
 
 TRAIN_CONFIG_NAME = "train_config.json"
 
