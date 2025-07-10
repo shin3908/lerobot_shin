@@ -77,26 +77,41 @@ class TrainPipelineConfig(HubMixin):
         self.checkpoint_path = None
         
         # ここで、CLIから受け取った値を実際のpolicy設定に伝播させます。
+        super().__post_init__() # 親クラスの__post_init__を呼び出すことを忘れないでください
+
+        print(f"DEBUG: __post_init__ entered. cli_policy_observation_state_filter: {self.cli_policy_observation_state_filter}")
+        print(f"DEBUG: Initial self.policy type: {type(self.policy)}")
+        print(f"DEBUG: Initial self.policy.observation_state_filter (if exists): {getattr(self.policy, 'observation_state_filter', 'NOT_FOUND')}")
+
+
         if self.cli_policy_observation_state_filter is not None:
-            # カンマ区切りの文字列をリストに変換
             filter_list = [
                 f.strip() for f in self.cli_policy_observation_state_filter.split(',')
             ]
             
-            # policyフィールドがすでに適切なタイプ（例：SmolVLAConfig）であることを確認
-            # make_policyがPolicyConfigではなくSmolVLAConfigを期待するように、型チェックを追加するか、
-            # もしくは設定オブジェクトの階層構造を正確に理解してアクセスします。
-            # 例として、policyがSmolVLAConfigのインスタンスであると仮定します。
-            if isinstance(self.policy, SmolVLAConfig): # 必要に応じて型チェックを追加
+            # ここが重要です。self.policyがSmolVLAConfigのインスタンスである必要があります。
+            # もしこの時点でPolicyConfigのままなら、SmolVLAConfigにキャスト（変換）するか、
+            # 別の方法でSmolVLAConfigのインスタンスにアクセスする必要があります。
+
+            # 最も一般的なケースでは、policy_typeに基づいて適切なPolicyConfigのサブクラスに
+            # draccusが自動的にデコードしているはずなので、ここでは型チェックをします。
+            
+            # 伝播前に、policyオブジェクトがSmolVLAConfigのインスタンスであるかを確認
+            if isinstance(self.policy, SmolVLAConfig):
+                print(f"DEBUG: self.policy is SmolVLAConfig. Setting observation_state_filter to {filter_list}")
                 self.policy.observation_state_filter = filter_list
             else:
-                # policyがSmolVLAConfigでない場合のハンドリング
-                # 例えば、エラーをログに出すか、デフォルトの挙動を維持するなど
-                import logging
-                logging.warning(
-                    f"cli_policy_observation_state_filter was provided, but policy is not a SmolVLAConfig instance. "
-                    f"Actual type: {type(self.policy)}. Filter will not be applied."
-                )
+                print(f"DEBUG: WARNING: self.policy is NOT SmolVLAConfig. It is {type(self.policy)}. Cannot set observation_state_filter directly.")
+                # ここで、もしcliからSmolVLAConfigのフィールドを設定しようとしているのに
+                # self.policyがPolicyConfig（または別のポリシータイプ）の場合、
+                # おそらくcli_policy_observation_state_filterを受け取るだけでなく、
+                # policy.typeもCLIから指定し、そのtypeに基づいてpolicyオブジェクトが適切に
+                # インスタンス化されることをdraccusに依存する必要があります。
+                # 例: --policy.type=smolvla
+                # もし--policy.typeも設定しているのにこのエラーが出るなら、draccusのパース順序の問題です。
+
+        print(f"DEBUG: Final self.policy.observation_state_filter (if exists): {getattr(self.policy, 'observation_state_filter', 'NOT_FOUND')}")
+
 
     def validate(self):
         # HACK: We parse again the cli args here to get the pretrained paths if there was some.
