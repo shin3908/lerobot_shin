@@ -28,7 +28,6 @@ from lerobot.common.utils.hub import HubMixin
 from lerobot.configs import parser
 from lerobot.configs.default import DatasetConfig, EvalConfig, WandBConfig
 from lerobot.configs.policies import PreTrainedConfig
-from lerobot.common.policies.smolvla.configuration_smolvla import SmolVLAConfig # <--- この行を追加
 
 TRAIN_CONFIG_NAME = "train_config.json"
 
@@ -64,52 +63,8 @@ class TrainPipelineConfig(HubMixin):
     scheduler: LRSchedulerConfig | None = None
     eval: EvalConfig = field(default_factory=EvalConfig)
     wandb: WandBConfig = field(default_factory=WandBConfig)
-    # ここに、CLIから受け取るための新しいフィールドを追加します。
-    # このフィールド名は、コマンドラインで指定する引数名になります。
-    # 例: --cli_policy_observation_state_filter "pos,current" のように使います。
-    # これはリストなので、draccusが適切にパースできるように文字列として受け取り、後でリストに変換します。
-    cli_policy_observation_state_filter: str | None = field(
-        default=None,
-        metadata={"help": "Comma-separated list of observation state filters (e.g., 'pos,current'). This overrides policy.observation_state_filter."}
-    )
-
     def __post_init__(self):
         self.checkpoint_path = None
-        
-        # ここで、CLIから受け取った値を実際のpolicy設定に伝播させます。
-
-        print(f"DEBUG: __post_init__ entered. cli_policy_observation_state_filter: {self.cli_policy_observation_state_filter}")
-        print(f"DEBUG: Initial self.policy type: {type(self.policy)}")
-        print(f"DEBUG: Initial self.policy.observation_state_filter (if exists): {getattr(self.policy, 'observation_state_filter', 'NOT_FOUND')}")
-
-
-        if self.cli_policy_observation_state_filter is not None:
-            filter_list = [
-                f.strip() for f in self.cli_policy_observation_state_filter.split(',')
-            ]
-            
-            # ここが重要です。self.policyがSmolVLAConfigのインスタンスである必要があります。
-            # もしこの時点でPolicyConfigのままなら、SmolVLAConfigにキャスト（変換）するか、
-            # 別の方法でSmolVLAConfigのインスタンスにアクセスする必要があります。
-
-            # 最も一般的なケースでは、policy_typeに基づいて適切なPolicyConfigのサブクラスに
-            # draccusが自動的にデコードしているはずなので、ここでは型チェックをします。
-            
-            # 伝播前に、policyオブジェクトがSmolVLAConfigのインスタンスであるかを確認
-            if isinstance(self.policy, SmolVLAConfig):
-                print(f"DEBUG: self.policy is SmolVLAConfig. Setting observation_state_filter to {filter_list}")
-                self.policy.observation_state_filter = filter_list
-            else:
-                print(f"DEBUG: WARNING: self.policy is NOT SmolVLAConfig. It is {type(self.policy)}. Cannot set observation_state_filter directly.")
-                # ここで、もしcliからSmolVLAConfigのフィールドを設定しようとしているのに
-                # self.policyがPolicyConfig（または別のポリシータイプ）の場合、
-                # おそらくcli_policy_observation_state_filterを受け取るだけでなく、
-                # policy.typeもCLIから指定し、そのtypeに基づいてpolicyオブジェクトが適切に
-                # インスタンス化されることをdraccusに依存する必要があります。
-                # 例: --policy.type=smolvla
-                # もし--policy.typeも設定しているのにこのエラーが出るなら、draccusのパース順序の問題です。
-
-        print(f"DEBUG: Final self.policy.observation_state_filter (if exists): {getattr(self.policy, 'observation_state_filter', 'NOT_FOUND')}")
 
 
     def validate(self):
