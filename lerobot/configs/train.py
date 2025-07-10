@@ -63,9 +63,39 @@ class TrainPipelineConfig(HubMixin):
     scheduler: LRSchedulerConfig | None = None
     eval: EvalConfig = field(default_factory=EvalConfig)
     wandb: WandBConfig = field(default_factory=WandBConfig)
+    # ここに、CLIから受け取るための新しいフィールドを追加します。
+    # このフィールド名は、コマンドラインで指定する引数名になります。
+    # 例: --cli_policy_observation_state_filter "pos,current" のように使います。
+    # これはリストなので、draccusが適切にパースできるように文字列として受け取り、後でリストに変換します。
+    cli_policy_observation_state_filter: str | None = field(
+        default=None,
+        metadata={"help": "Comma-separated list of observation state filters (e.g., 'pos,current'). This overrides policy.observation_state_filter."}
+    )
 
     def __post_init__(self):
         self.checkpoint_path = None
+        
+        # ここで、CLIから受け取った値を実際のpolicy設定に伝播させます。
+        if self.cli_policy_observation_state_filter is not None:
+            # カンマ区切りの文字列をリストに変換
+            filter_list = [
+                f.strip() for f in self.cli_policy_observation_state_filter.split(',')
+            ]
+            
+            # policyフィールドがすでに適切なタイプ（例：SmolVLAConfig）であることを確認
+            # make_policyがPolicyConfigではなくSmolVLAConfigを期待するように、型チェックを追加するか、
+            # もしくは設定オブジェクトの階層構造を正確に理解してアクセスします。
+            # 例として、policyがSmolVLAConfigのインスタンスであると仮定します。
+            if isinstance(self.policy, SmolVLAConfig): # 必要に応じて型チェックを追加
+                self.policy.observation_state_filter = filter_list
+            else:
+                # policyがSmolVLAConfigでない場合のハンドリング
+                # 例えば、エラーをログに出すか、デフォルトの挙動を維持するなど
+                import logging
+                logging.warning(
+                    f"cli_policy_observation_state_filter was provided, but policy is not a SmolVLAConfig instance. "
+                    f"Actual type: {type(self.policy)}. Filter will not be applied."
+                )
 
     def validate(self):
         # HACK: We parse again the cli args here to get the pretrained paths if there was some.
