@@ -377,6 +377,7 @@ class SmolVLAPolicy(PreTrainedPolicy):
         
         # Create a new filtered input_features dictionary
         filtered_features = {}
+        print(f"[SmolVLA] Filtering input features based on: {filter_terms}")
         
         for key, feature in self.config.input_features.items():
             # Keep non-state features (like images) as they are
