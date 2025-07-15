@@ -541,6 +541,7 @@ class PI0Policy(PreTrainedPolicy):
     
     def _filter_state_batch(self, state_tensor, batch):
         """Filter state tensor based on observation_state_filter configuration."""
+        print(f"Original state shape: {state_tensor.shape}")
         if not self.config.observation_state_filter:
             return state_tensor
         
@@ -598,6 +599,8 @@ class PI0Policy(PreTrainedPolicy):
             # If no features match, return empty tensor with at least 1 dimension
             state_tensor = torch.zeros(state_tensor.shape[0], 1, device=state_tensor.device, dtype=state_tensor.dtype)
         
+        print(f"Filtered state shape: {state_tensor.shape}")
+        print(f"Filtered indices: {filtered_indices}")
         return state_tensor
 
     def prepare_action(self, batch):
