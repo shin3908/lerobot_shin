@@ -241,6 +241,19 @@ class PI0Policy(PreTrainedPolicy):
         config.validate_features()
         self.config = config
         
+        user_input = input(
+            "Enter observation_state_filter (e.g., 'pos', 'pos,current', or 'None' for no filter): "
+        )
+
+        if user_input.lower() == "none":
+            self.config.observation_state_filter = None
+            print("DEBUG (PI0Policy.__init__): observation_state_filter set to None (no filter).")
+        else:
+            # カンマ区切りの文字列をリストに変換します
+            filter_list = [f.strip() for f in user_input.split(',')]
+            self.config.observation_state_filter = filter_list
+            print(f"DEBUG (Pi0Policy.__init__): observation_state_filter set to: {self.config.observation_state_filter}")
+        
         # Apply observation filtering if specified
         if config.observation_state_filter is not None:
             self._filter_input_features()
