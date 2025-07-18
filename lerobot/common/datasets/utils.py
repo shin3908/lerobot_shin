@@ -440,6 +440,55 @@ def build_dataset_frame(
     return frame
 
 
+def apply_observation_state_filter_to_frame(
+    observation_frame: dict[str, np.ndarray],
+    original_state_names: list[str],
+    observation_state_filter: list[str] | None = None,
+) -> dict[str, np.ndarray]:
+    """Apply observation state filtering to an observation frame during inference.
+    
+    Args:
+        observation_frame: The observation frame dict containing 'observation.state' array
+        original_state_names: The original state feature names before filtering
+        observation_state_filter: List of suffixes to filter by (e.g., ['.pos'])
+    
+    Returns:
+        The filtered observation frame
+    
+    Raises:
+        ValueError: If filtering configuration is incompatible with the observation data
+    """
+    if observation_state_filter is None or "observation.state" not in observation_frame:
+        return observation_frame
+    
+    # Apply filtering logic similar to _apply_observation_state_filter
+    filtered_names = []
+    for name in original_state_names:
+        if any(name.endswith(suffix) for suffix in observation_state_filter):
+            filtered_names.append(name)
+    
+    if not filtered_names:
+        raise ValueError(
+            f"No features match the observation_state_filter {observation_state_filter}. "
+            f"Available features: {original_state_names}"
+        )
+    
+    if len(original_state_names) != len(observation_frame["observation.state"]):
+        raise ValueError(
+            f"Mismatch between original state names ({len(original_state_names)}) "
+            f"and observation state array ({len(observation_frame['observation.state'])}). "
+            f"Original names: {original_state_names}"
+        )
+    
+    # Create filtered observation frame
+    filtered_observation_frame = observation_frame.copy()
+    filtered_indices = [original_state_names.index(name) for name in filtered_names]
+    original_state_array = observation_frame["observation.state"]
+    filtered_observation_frame["observation.state"] = original_state_array[filtered_indices]
+    
+    return filtered_observation_frame
+
+
 def get_features_from_robot(robot: Robot, use_videos: bool = True) -> dict:
     camera_ft = {}
     if robot.cameras:
@@ -450,7 +499,72 @@ def get_features_from_robot(robot: Robot, use_videos: bool = True) -> dict:
     return {**robot.motor_features, **camera_ft, **DEFAULT_FEATURES}
 
 
-def dataset_to_policy_features(features: dict[str, dict]) -> dict[str, PolicyFeature]:
+def _apply_observation_state_filter(
+    names: list[str], 
+    shape: tuple[int, ...], 
+    observation_state_filter: list[str] | None
+) -> tuple[list[str], tuple[int, ...]]:
+    """Apply filtering to observation state features based on user-specified filters.
+    
+    Args:
+        names: List of feature names
+        shape: Original shape of the feature
+        observation_state_filter: List of filter patterns (exact match, suffix, or prefix)
+    
+    Returns:
+        Tuple of (filtered_names, filtered_shape)
+    """
+    if observation_state_filter is None or not names:
+        return names, shape
+    
+    filtered_indices = []
+    filtered_names = []
+    
+    for i, name in enumerate(names):
+        for filter_pattern in observation_state_filter:
+            # Check for exact match
+            if name == filter_pattern:
+                filtered_indices.append(i)
+                filtered_names.append(name)
+                break
+            # Check for suffix match (e.g., "shoulder_pan.pos" matches ".pos")
+            elif filter_pattern.startswith('.') and name.endswith(filter_pattern):
+                filtered_indices.append(i)
+                filtered_names.append(name)
+                break
+            # Check for prefix match (e.g., "shoulder_pan.pos" matches "shoulder_pan.")
+            elif not filter_pattern.startswith('.') and name.startswith(filter_pattern):
+                filtered_indices.append(i)
+                filtered_names.append(name)
+                break
+    
+    if not filtered_indices:
+        print(f"Warning: No features matched the filter patterns {observation_state_filter}")
+        print(f"Available features: {names}")
+        return names, shape
+    
+    # Update shape to reflect filtered dimensions
+    if len(shape) == 1:
+        filtered_shape = (len(filtered_indices),)
+    else:
+        filtered_shape = shape  # For non-1D features, keep original shape
+    
+    return filtered_names, filtered_shape
+
+
+def dataset_to_policy_features(
+    features: dict[str, dict], 
+    observation_state_filter: list[str] | None = None
+) -> dict[str, PolicyFeature]:
+    """Convert dataset features to policy features with optional filtering.
+    
+    Args:
+        features: Dictionary of dataset features
+        observation_state_filter: Optional list of filter patterns for observation.state features
+    
+    Returns:
+        Dictionary of PolicyFeature objects
+    """
     # TODO(aliberts): Implement "type" in dataset features and simplify this
     policy_features = {}
     for key, ft in features.items():
@@ -472,6 +586,31 @@ def dataset_to_policy_features(features: dict[str, dict]) -> dict[str, PolicyFea
             type = FeatureType.ACTION
         else:
             continue
+
+        # Apply filtering for observation.state features
+        if key == "observation.state" and observation_state_filter is not None:
+            # Extract names from the feature for filtering
+            names = ft.get("names", None)
+            
+            # Handle different name formats
+            if names is not None:
+                if isinstance(names, dict):
+                    # If names is a dict like {'motors': ['motor_0', 'motor_1']}, flatten it
+                    flat_names = []
+                    for name_group in names.values():
+                        if isinstance(name_group, list):
+                            flat_names.extend(name_group)
+                        else:
+                            flat_names.append(name_group)
+                    names = flat_names
+                elif isinstance(names, list):
+                    # If names is already a list, use it as is
+                    pass
+                else:
+                    # Convert other types to list
+                    names = [names]
+
+            names, shape = _apply_observation_state_filter(names, shape, observation_state_filter)
 
         policy_features[key] = PolicyFeature(
             type=type,

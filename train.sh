@@ -59,10 +59,6 @@ python lerobot/scripts/train.py \
 
 ------------------------------------------------------------------------------
 ※ 以下new環境での学習
-※ observation_state_filterを使用するには、YAMLファイルを使用してください:
-※   --config_path=configs/smolvla_pos_only.yaml (位置データのみ)
-※   --config_path=configs/smolvla_pos_current.yaml (位置+電流データ)
-※ または、コマンドラインから直接は機能しない可能性があります
 ※ record.pyでの評価時は、"[OBSERVATION FILTER]"のログでフィルタリング状況が確認できる
 ※ smolvla
 ※ バッチサイズに注意！！
@@ -70,7 +66,6 @@ python lerobot/scripts/train.py \
 export CUDA_VISIBLE_DEVICES=0
 
 python lerobot/scripts/train.py \
-  --config_path=configs/smolvla_fb_all.yaml \
   --policy.path=lerobot/smolvla_base \
   --dataset.repo_id=shin1107/koch_new_fb \
   --batch_size=64 \
@@ -87,14 +82,14 @@ python lerobot/scripts/train.py \
   --dataset.repo_id=shin1107/koch_new_fb \
   --batch_size=64 \
   --steps=100000 \
-  --output_dir=data3/train/new/koch_base_smolvla_wofb_2 \
-  --job_name=act_koch_base_smolvla_wofb_2 \
+  --output_dir=data3/train/new/koch_base_smolvla_wofb_3 \
+  --job_name=act_koch_base_smolvla_wofb_3 \
   --policy.device=cuda \
   --wandb.enable=true \
   --wandb.project=lerobot_policy
 
 ※ pi0 with position only
-CUDA_VISIBLE_DEVICES=1 
+export CUDA_VISIBLE_DEVICES=1
 
 python lerobot/scripts/train.py \
   --policy.path=lerobot/pi0 \

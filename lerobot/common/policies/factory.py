@@ -105,6 +105,7 @@ def make_policy(
     cfg: PreTrainedConfig,
     ds_meta: LeRobotDatasetMetadata | None = None,
     env_cfg: EnvConfig | None = None,
+    observation_state_filter: list[str] | None = None,
 ) -> PreTrainedPolicy:
     """Make an instance of a policy class.
 
@@ -118,6 +119,8 @@ def make_policy(
             statistics to use for (un)normalization of inputs/outputs in the policy. Defaults to None.
         env_cfg (EnvConfig | None, optional): The config of a gym environment to parse features from. Must be
             provided if ds_meta is not. Defaults to None.
+        observation_state_filter (list[str] | None, optional): Filter observation state features by suffix.
+            Defaults to None.
 
     Raises:
         ValueError: Either ds_meta or env and env_cfg must be provided.
@@ -146,7 +149,7 @@ def make_policy(
 
     kwargs = {}
     if ds_meta is not None:
-        features = dataset_to_policy_features(ds_meta.features)
+        features = dataset_to_policy_features(ds_meta.features, observation_state_filter)
         kwargs["dataset_stats"] = ds_meta.stats
     else:
         if not cfg.pretrained_path:

@@ -51,7 +51,7 @@ from lerobot.common.cameras.opencv.configuration_opencv import OpenCVCameraConfi
 from lerobot.common.cameras.realsense.configuration_realsense import RealSenseCameraConfig  # noqa: F401
 from lerobot.common.datasets.image_writer import safe_stop_image_writer
 from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
-from lerobot.common.datasets.utils import build_dataset_frame, hw_to_dataset_features
+from lerobot.common.datasets.utils import build_dataset_frame, hw_to_dataset_features, apply_observation_state_filter_to_frame
 from lerobot.common.policies.factory import make_policy
 from lerobot.common.policies.pretrained import PreTrainedPolicy
 from lerobot.common.robots import (  # noqa: F401
@@ -97,6 +97,8 @@ class DatasetRecordConfig:
     root: str | Path | None = None
     # Limit the frames per second.
     fps: int = 30
+    # Filter observation state features by suffix (e.g., ['.pos'] to keep only position features)
+    observation_state_filter: list[str] | None = None
     # Number of seconds for data recording for each episode.
     episode_time_s: int | float = 60
     # Number of seconds for resetting the environment after each episode.
@@ -170,6 +172,7 @@ def record_loop(
     current_episode_task: str | None = None,
     # single_task: str | None = None,
     display_data: bool = False,
+    observation_state_filter: list[str] | None = None,
 ):
     if dataset is not None and dataset.fps != fps:
         raise ValueError(f"The dataset fps should be equal to requested fps ({dataset.fps} != {fps}).")
@@ -191,6 +194,15 @@ def record_loop(
 
         if policy is not None or dataset is not None:
             observation_frame = build_dataset_frame(dataset.features, observation, prefix="observation")
+            
+            # Apply observation state filtering if needed for inference
+            if policy is not None and observation_state_filter is not None:
+                # Get original state names from robot features
+                original_state_names = robot.motor_features.get("observation.state", {}).get("names", [])
+                if original_state_names:
+                    observation_frame = apply_observation_state_filter_to_frame(
+                        observation_frame, original_state_names, observation_state_filter
+                    )
 
         if policy is not None:
             action_values = predict_action(
@@ -280,7 +292,9 @@ def record(cfg: RecordConfig) -> LeRobotDataset:
         )
 
     # Load pretrained policy
-    policy = None if cfg.policy is None else make_policy(cfg.policy, ds_meta=dataset.meta)
+    policy = None if cfg.policy is None else make_policy(
+        cfg.policy, ds_meta=dataset.meta, observation_state_filter=cfg.dataset.observation_state_filter
+    )
 
     robot.connect()
     if teleop is not None:
@@ -304,6 +318,7 @@ def record(cfg: RecordConfig) -> LeRobotDataset:
             # single_task=cfg.dataset.single_task,
             current_episode_task=current_episode_task,
             display_data=cfg.display_data,
+            observation_state_filter=cfg.dataset.observation_state_filter,
         )
 
         # Execute a few seconds without recording to give time to manually reset the environment
@@ -322,6 +337,7 @@ def record(cfg: RecordConfig) -> LeRobotDataset:
                 # single_task=cfg.dataset.single_task,
                 current_episode_task=current_episode_task,
                 display_data=cfg.display_data,
+                observation_state_filter=cfg.dataset.observation_state_filter,
             )
 
         if events["rerecord_episode"]:
