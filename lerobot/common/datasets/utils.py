@@ -450,9 +450,32 @@ def get_features_from_robot(robot: Robot, use_videos: bool = True) -> dict:
     return {**robot.motor_features, **camera_ft, **DEFAULT_FEATURES}
 
 
-def dataset_to_policy_features(features: dict[str, dict]) -> dict[str, PolicyFeature]:
+def dataset_to_policy_features(
+    features: dict[str, dict], 
+    observation_state_filter: list[str] | None = None
+) -> dict[str, PolicyFeature]:
+    """
+    Convert dataset features to policy features with optional observation state filtering.
+    
+    Args:
+        features: Dictionary of dataset features
+        observation_state_filter: List of filter terms to apply to observation.state features.
+                                 If None, the function will prompt the user for input.
+                                 Each term can be:
+                                 - Exact name match (e.g., "shoulder_pan.pos")
+                                 - Suffix match (e.g., "pos" matches "*.pos")
+                                 - Prefix match (e.g., "shoulder_pan" matches "shoulder_pan.*")
+    
+    Returns:
+        Dictionary of PolicyFeature objects
+    """
+    # If no filter is provided, prompt user for input
+    if observation_state_filter is None:
+        observation_state_filter = apply_observation_state_filter_interactive()
+    
     # TODO(aliberts): Implement "type" in dataset features and simplify this
     policy_features = {}
+    
     for key, ft in features.items():
         shape = ft["shape"]
         if ft["dtype"] in ["image", "video"]:
@@ -468,6 +491,18 @@ def dataset_to_policy_features(features: dict[str, dict]) -> dict[str, PolicyFea
             type = FeatureType.ENV
         elif key.startswith("observation"):
             type = FeatureType.STATE
+            
+            # Apply filtering to observation.state features
+            if key == "observation.state" and observation_state_filter is not None:
+                filtered_features = _filter_observation_state_features(ft, observation_state_filter)
+                if filtered_features:
+                    shape = filtered_features["shape"]
+                    # Store filtered names for later use
+                    ft = filtered_features
+                else:
+                    # Skip this feature if no elements match the filter
+                    continue
+                    
         elif key.startswith("action"):
             type = FeatureType.ACTION
         else:
@@ -479,6 +514,116 @@ def dataset_to_policy_features(features: dict[str, dict]) -> dict[str, PolicyFea
         )
 
     return policy_features
+
+
+def _filter_observation_state_features(
+    state_feature: dict, 
+    filter_terms: list[str]
+) -> dict | None:
+    """
+    Filter observation.state features based on filter terms.
+    
+    Args:
+        state_feature: The observation.state feature dictionary with 'names' and 'shape'
+        filter_terms: List of filter terms to match against feature names
+        
+    Returns:
+        Filtered feature dictionary or None if no features match
+    """
+    if "names" not in state_feature:
+        # If no names available, cannot filter
+        return state_feature
+        
+    names = state_feature["names"]
+    original_shape = state_feature["shape"]
+    
+    # Find indices of features that match the filter
+    filtered_indices = []
+    filtered_names = []
+    
+    for i, name in enumerate(names):
+        should_include = False
+        
+        for filter_term in filter_terms:
+            # Check for exact name match
+            if name == filter_term:
+                should_include = True
+                break
+            # Check for suffix match (e.g., "pos" matches "shoulder_pan.pos")
+            elif name.endswith(f".{filter_term}"):
+                should_include = True
+                break
+            # Check for prefix match (e.g., "shoulder_pan" matches "shoulder_pan.pos")
+            elif name.startswith(f"{filter_term}."):
+                should_include = True
+                break
+        
+        if should_include:
+            filtered_indices.append(i)
+            filtered_names.append(name)
+    
+    if not filtered_indices:
+        return None
+        
+    # Create new feature dictionary with filtered shape and names
+    filtered_feature = state_feature.copy()
+    filtered_feature["shape"] = (len(filtered_indices),)
+    filtered_feature["names"] = filtered_names
+    filtered_feature["_original_shape"] = original_shape
+    filtered_feature["_filtered_indices"] = filtered_indices
+    
+    return filtered_feature
+
+
+def apply_observation_state_filter_interactive() -> list[str] | None:
+    """
+    Interactive function to get observation state filter from user input.
+    
+    Returns:
+        List of filter terms or None if no filter should be applied
+    """
+    user_input = input(
+        "Enter observation_state_filter (e.g., 'pos', 'pos,current', or 'None' for no filter): "
+    ).strip()
+    
+    if user_input.lower() in ['none', 'n', '']:
+        return None
+    else:
+        filter_list = [f.strip() for f in user_input.split(',')]
+        print(f"Observation state filter set to: {filter_list}")
+        return filter_list
+
+
+def create_filtered_dataset_features(
+    original_features: dict[str, dict], 
+    observation_state_filter: list[str] | None = None
+) -> dict[str, dict]:
+    """
+    Create a new dataset features dictionary with observation state filtering applied.
+    
+    Args:
+        original_features: Original dataset features dictionary
+        observation_state_filter: List of filter terms to apply
+        
+    Returns:
+        New features dictionary with filtering applied
+    """
+    if observation_state_filter is None:
+        return original_features.copy()
+    
+    filtered_features = {}
+    
+    for key, feature in original_features.items():
+        if key == "observation.state":
+            filtered_feature = _filter_observation_state_features(feature, observation_state_filter)
+            if filtered_feature is not None:
+                filtered_features[key] = filtered_feature
+            # If filtered_feature is None, the feature is skipped
+        else:
+            # Copy other features as-is
+            filtered_features[key] = feature.copy()
+    
+    return filtered_features
 
 
 def create_empty_dataset_info(

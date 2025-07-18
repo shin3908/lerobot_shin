@@ -240,39 +240,6 @@ class PI0Policy(PreTrainedPolicy):
         super().__init__(config)
         config.validate_features()
         self.config = config
-
-        user_input = input(
-            "Enter observation_state_filter (e.g., 'pos', 'pos,current', or 'None' for no filter): "
-        )
-
-        if user_input.lower() == "none":
-            self.config.observation_state_filter = None
-            print("DEBUG (SmolVLAPolicy.__init__): observation_state_filter set to None (no filter).")
-        else:
-            # カンマ区切りの文字列をリストに変換します
-            filter_list = [f.strip() for f in user_input.split(',')]
-            self.config.observation_state_filter = filter_list
-            print(f"DEBUG (SmolVLAPolicy.__init__): observation_state_filter set to: {self.config.observation_state_filter}")
-            
-        
-        user_input = input(
-            "Enter observation_state_filter (e.g., 'pos', 'pos,current', or 'None' for no filter): "
-        )
-
-        if user_input.lower() == "none":
-            self.config.observation_state_filter = None
-            print("DEBUG (PI0Policy.__init__): observation_state_filter set to None (no filter).")
-        else:
-            # カンマ区切りの文字列をリストに変換します
-            filter_list = [f.strip() for f in user_input.split(',')]
-            self.config.observation_state_filter = filter_list
-            print(f"DEBUG (Pi0Policy.__init__): observation_state_filter set to: {self.config.observation_state_filter}")
-        
-        # Apply observation filtering if specified
-        if config.observation_state_filter is not None:
-            self._filter_input_features()
-            # Store the original state names for inference-time filtering
-            self._store_original_state_names()
         
         self.normalize_inputs = Normalize(config.input_features, config.normalization_mapping, dataset_stats)
         self.normalize_targets = Normalize(
@@ -286,69 +253,6 @@ class PI0Policy(PreTrainedPolicy):
         self.model = PI0FlowMatching(config)
 
         self.reset()
-
-    def _filter_input_features(self):
-        """Filter input features based on observation_state_filter configuration."""
-        if not self.config.observation_state_filter:
-            return
-            
-        # Note: This method filters the config features, but the actual filtering
-        # happens in _filter_state_batch which has access to the dataset names
-        # This is kept for backward compatibility with the config-based approach
-        
-        filter_terms = self.config.observation_state_filter
-        
-        # Create a new filtered input_features dictionary
-        filtered_features = {}
-        
-        for key, feature in self.config.input_features.items():
-            # Keep non-state features (like images) as they are
-            if not key.startswith("observation.state."):
-                filtered_features[key] = feature
-                continue
-                
-            # For state features, check if they match any filter term
-            feature_name = key.replace("observation.state.", "")
-            should_include = False
-            
-            for filter_term in filter_terms:
-                # Check for exact name match
-                if feature_name == filter_term:
-                    should_include = True
-                    break
-                # Check for suffix match (e.g., "pos" matches "shoulder_pan.pos")
-                elif feature_name.endswith(f".{filter_term}"):
-                    should_include = True
-                    break
-                # Check for prefix match (e.g., "shoulder_pan" matches "shoulder_pan.pos")
-                elif feature_name.startswith(f"{filter_term}."):
-                    should_include = True
-                    break
-            
-            if should_include:
-                filtered_features[key] = feature
-        
-        # Update the config with filtered features
-        self.config.input_features = filtered_features
-        
-        # Recalculate max_state_dim based on filtered features
-        state_dim = 0
-        for key, feature in filtered_features.items():
-            if key.startswith("observation.state."):
-                state_dim += feature.shape[0] if hasattr(feature, 'shape') else 1
-        
-        if state_dim > 0:
-            # Set max_state_dim to the actual filtered dimension
-            # Pi0 doesn't need dimension compression as it handles up to 32 dimensions
-            self.config.max_state_dim = state_dim
-            print(f"[Pi0] Updated max_state_dim to {state_dim} after filtering")
-
-    def _store_original_state_names(self):
-        """Store original state names for inference-time filtering compatibility."""
-        # This helps maintain compatibility when loading the model for inference
-        if hasattr(self, 'normalize_inputs') and hasattr(self.normalize_inputs, 'stats'):
-            if "observation.state" in self.normalize_inputs.stats and "names" in self.normalize_inputs.stats["observation.state"]:
-                self._original_state_names = self.normalize_inputs.stats["observation.state"]["names"]
 
     def reset(self):
         """This should be called whenever the environment is reset."""
@@ -529,79 +433,11 @@ class PI0Policy(PreTrainedPolicy):
         return actions
 
     def prepare_state(self, batch):
-        """Pad state and apply observation filtering if configured."""
+        """Pad state."""
         state = batch[OBS_STATE]
-        
-        # Apply observation filtering if configured
-        if self.config.observation_state_filter is not None:
-            state = self._filter_state_batch(state, batch)
         
         state = pad_vector(state, self.config.max_state_dim)
         return state
-    
-    def _filter_state_batch(self, state_tensor, batch):
-        """Filter state tensor based on observation_state_filter configuration."""
-        print(f"Original state shape: {state_tensor.shape}")
-        if not self.config.observation_state_filter:
-            return state_tensor
-        
-        # Get the state feature names from the dataset metadata
-        state_names = None
-        
-        # Try to get names from the dataset stats (if available)
-        if hasattr(self.normalize_inputs, 'stats') and self.normalize_inputs.stats:
-            for key, stats in self.normalize_inputs.stats.items():
-                if key == "observation.state" and "names" in stats:
-                    state_names = stats["names"]
-                    break
-        
-        # If we don't have names from stats, try to infer from input_features
-        if state_names is None:
-            # This is a fallback - in practice, names should come from dataset metadata
-            state_names = []
-            for key in sorted(self.config.input_features.keys()):
-                if key.startswith("observation.state."):
-                    feature_name = key.replace("observation.state.", "")
-                    state_names.append(feature_name)
-        
-        if not state_names:
-            # If we still don't have names, return the original tensor
-            return state_tensor
-        
-        # Create indices for filtered features
-        filtered_indices = []
-        filter_terms = self.config.observation_state_filter
-        
-        for i, name in enumerate(state_names):
-            should_include = False
-            
-            for filter_term in filter_terms:
-                # Check for exact name match
-                if name == filter_term:
-                    should_include = True
-                    break
-                # Check for suffix match (e.g., "pos" matches "shoulder_pan.pos")
-                elif name.endswith(f".{filter_term}"):
-                    should_include = True
-                    break
-                # Check for prefix match (e.g., "shoulder_pan" matches "shoulder_pan.pos")
-                elif name.startswith(f"{filter_term}."):
-                    should_include = True
-                    break
-            
-            if should_include:
-                filtered_indices.append(i)
-        
-        # Filter the state tensor
-        if filtered_indices:
-            state_tensor = state_tensor[:, filtered_indices]
-        else:
-            # If no features match, return empty tensor with at least 1 dimension
-            state_tensor = torch.zeros(state_tensor.shape[0], 1, device=state_tensor.device, dtype=state_tensor.dtype)
-        
-        print(f"Filtered state shape: {state_tensor.shape}")
-        print(f"Filtered indices: {filtered_indices}")
-        return state_tensor
 
     def prepare_action(self, batch):
         """Pad action"""
