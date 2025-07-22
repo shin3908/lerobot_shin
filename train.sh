@@ -94,7 +94,7 @@ python lerobot/scripts/train.py \
   --wandb.project=lerobot_policy
 
 ※ pi0 with position only
-CUDA_VISIBLE_DEVICES=1 
+export CUDA_VISIBLE_DEVICES=1
 
 python lerobot/scripts/train.py \
   --policy.path=lerobot/pi0 \
@@ -112,8 +112,8 @@ python lerobot/scripts/train.py \
   --dataset.repo_id=shin1107/koch_new_fb \
   --batch_size=8 \
   --steps=100000 \
-  --output_dir=data3/train/new/koch_base_pi0_wofb_2 \
-  --job_name=act_koch_base_pi0_wofb_2 \
+  --output_dir=data3/train/new/koch_base_pi0_wofb_3 \
+  --job_name=act_koch_base_pi0_wofb_3 \
   --policy.device=cuda \
   --wandb.enable=true \
   --wandb.project=lerobot_policy
