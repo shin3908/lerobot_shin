@@ -70,13 +70,12 @@ python lerobot/scripts/train.py \
 export CUDA_VISIBLE_DEVICES=0
 
 python lerobot/scripts/train.py \
-  --config_path=configs/smolvla_fb_all.yaml \
   --policy.path=lerobot/smolvla_base \
-  --dataset.repo_id=shin1107/koch_new_fb \
+  --dataset.root=data3/train/dataset/koch_new_fb_6d \
   --batch_size=64 \
   --steps=100000 \
-  --output_dir=data3/train/new/koch_base_smolvla_fb_all_2 \
-  --job_name=act_koch_base_smolvla_fb_all_2 \
+  --output_dir=data3/train/new/koch_base_smolvla_wofb_4 \
+  --job_name=act_koch_base_smolvla_wofb_4 \
   --policy.device=cuda \
   --wandb.enable=true \
   --wandb.project=lerobot_policy
