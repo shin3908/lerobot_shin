@@ -15,7 +15,7 @@ import glob
 
 # データセットパス設定
 SOURCE_PATH = "C:/Users/harry/workspace/lerobot_shin/dataset/koch_new_fb"
-TARGET_PATH = "C:/Users/harry/workspace/lerobot_shin/dataset/koch_new_fb_6d"
+TARGET_PATH = "C:/Users/harry/workspace/lerobot_shin/dataset/koch_new_fb_6d3"
 
 # フィルタ設定
 INDICES_TO_REMOVE = [1, 3, 5, 7, 9, 11]  # observation.stateから削除するインデックス
@@ -27,6 +27,9 @@ CHUNK_NAME = "chunk-000"  # 処理対象チャンク名
 
 # コピーするmetaファイルリスト
 META_FILES_TO_COPY = ["episodes.jsonl", "tasks.jsonl"]
+
+# 画像統計計算用の設定
+IMAGE_COLUMNS = ["observation.images.front", "observation.images.top"]  # 統計計算対象の画像カラム
 
 # ==========================================================================
 
@@ -62,6 +65,15 @@ def my_transform_array(state_array):
     except Exception as e:
         print(f"警告: {TARGET_COLUMN}変換でエラーが発生しました: {e}")
         return state_array.tolist() if hasattr(state_array, 'tolist') else state_array
+
+def filter_stats_array(stats_array, indices_to_remove):
+    """統計配列から指定されたインデックスを削除"""
+    try:
+        filtered_array = [val for i, val in enumerate(stats_array) if i not in indices_to_remove]
+        return filtered_array
+    except Exception as e:
+        print(f"統計配列フィルタリングでエラー: {e}")
+        return stats_array
 
 def process_single_parquet_file(args):
     """単一のparquetファイルを処理（並列処理用）"""
@@ -131,53 +143,6 @@ def process_single_parquet_file(args):
             'count': 0
         }
 
-def calculate_parquet_stats(args):
-    """単一のparquetファイルの統計計算（並列処理用）"""
-    file_path = args
-    
-    try:
-        # Parquetファイルを読み込み
-        table = pq.read_table(file_path)
-        df = table.to_pandas()
-        
-        if len(df) == 0:
-            return None
-            
-        # episode_indexを取得（ファイル内で一意であると仮定）
-        episode_index = df['episode_index'].iloc[0]
-        
-        # 既に変換済みのデータなので、変換は不要
-        states_array = np.array(df[TARGET_COLUMN].tolist())
-        action_array = np.array(df['action'].tolist())
-        
-        if states_array.ndim > 1 and states_array.shape[0] > 0:
-            stats_entry = {
-                "episode_index": int(episode_index),
-                "stats": {
-                    "action": {
-                        "min": action_array.min(axis=0).tolist(),
-                        "max": action_array.max(axis=0).tolist(),
-                        "mean": action_array.mean(axis=0).tolist(),
-                        "std": action_array.std(axis=0).tolist(),
-                        "count": [len(action_array)]
-                    },
-                    f"{TARGET_COLUMN}": {
-                        "min": states_array.min(axis=0).tolist(),
-                        "max": states_array.max(axis=0).tolist(),
-                        "mean": states_array.mean(axis=0).tolist(),
-                        "std": states_array.std(axis=0).tolist(),
-                        "count": [len(states_array)]
-                    }
-                }
-            }
-            return stats_entry
-        
-        return None
-        
-    except Exception as e:
-        print(f"ファイル {os.path.basename(file_path)} の統計計算でエラー: {e}")
-        return None
-
 def update_info_json(source_path, target_path):
     """info.jsonを更新"""
     try:
@@ -216,6 +181,55 @@ def update_info_json(source_path, target_path):
         print(f"エラー: info.json更新中に問題が発生しました: {e}")
         traceback.print_exc()
 
+def copy_and_filter_episodes_stats(source_path, target_path):
+    """episodes_stats.jsonlをコピーしてフィルタリング"""
+    try:
+        source_stats_path = os.path.join(source_path, "meta", "episodes_stats.jsonl")
+        target_stats_path = os.path.join(target_path, "meta", "episodes_stats.jsonl")
+        
+        if not os.path.exists(source_stats_path):
+            print(f"警告: ソースの統計ファイルが見つかりません: {source_stats_path}")
+            return
+        
+        print("元の統計情報をコピーしてフィルタリング中...")
+        
+        with open(source_stats_path, 'r') as source_file, open(target_stats_path, 'w') as target_file:
+            for line in source_file:
+                try:
+                    entry = json.loads(line.strip())
+                    
+                    # TARGET_COLUMNの統計をフィルタリング
+                    if "stats" in entry and TARGET_COLUMN in entry["stats"]:
+                        target_stats = entry["stats"][TARGET_COLUMN]
+                        
+                        # 各統計値をフィルタリング
+                        if "min" in target_stats:
+                            target_stats["min"] = filter_stats_array(target_stats["min"], INDICES_TO_REMOVE)
+                        if "max" in target_stats:
+                            target_stats["max"] = filter_stats_array(target_stats["max"], INDICES_TO_REMOVE)
+                        if "mean" in target_stats:
+                            target_stats["mean"] = filter_stats_array(target_stats["mean"], INDICES_TO_REMOVE)
+                        if "std" in target_stats:
+                            target_stats["std"] = filter_stats_array(target_stats["std"], INDICES_TO_REMOVE)
+                        
+                        entry["stats"][TARGET_COLUMN] = target_stats
+                    
+                    # フィルタリング済みエントリを書き込み
+                    target_file.write(json.dumps(entry) + "\n")
+                    
+                except json.JSONDecodeError as e:
+                    print(f"JSONデコードエラー: {e}")
+                    continue
+                except Exception as e:
+                    print(f"エントリ処理エラー: {e}")
+                    continue
+        
+        print("  - episodes_stats.jsonlのコピー・フィルタリング完了")
+        
+    except Exception as e:
+        print(f"エラー: episodes_stats.jsonl処理中に問題が発生しました: {e}")
+        traceback.print_exc()
+
 # --------------------------------------------------------------------------
 # メインスクリプト
 # --------------------------------------------------------------------------
@@ -231,6 +245,7 @@ if __name__ == "__main__":
     print(f"ターゲット: {TARGET_PATH}")
     print(f"変換対象カラム: {TARGET_COLUMN}")
     print(f"削除インデックス: {INDICES_TO_REMOVE}")
+    print(f"画像統計対象カラム: {IMAGE_COLUMNS}")
     print("=" * 60)
 
     # ターゲットディレクトリをクリーンアップ
@@ -327,39 +342,8 @@ if __name__ == "__main__":
     print("info.jsonを更新中...")
     update_info_json(SOURCE_PATH, TARGET_PATH)
 
-    # 並列処理でepisodes_stats.jsonlを計算
-    print("並列処理でepisodes_stats.jsonlを計算中...")
-    try:
-        # 変換済みのparquetファイル一覧を取得
-        transformed_parquet_files = glob.glob(os.path.join(target_data_path, "*.parquet"))
-        transformed_parquet_files.sort()
-        
-        episode_stats_list = []
-        
-        with ProcessPoolExecutor(max_workers=max_workers) as executor:
-            # 並列処理で統計を計算
-            stats_results = list(executor.map(calculate_parquet_stats, transformed_parquet_files))
-            
-            # None以外の結果のみを収集
-            episode_stats_list = [result for result in stats_results if result is not None]
-            
-            # episode_indexでソート
-            episode_stats_list.sort(key=lambda x: x["episode_index"])
-            
-            # 進捗表示
-            completed_stats = len(episode_stats_list)
-            print(f"    統計計算完了: {completed_stats}/{len(transformed_parquet_files)} ファイル")
-
-        # 結果を保存
-        new_stats_path = os.path.join(TARGET_PATH, "meta", "episodes_stats.jsonl")
-        with open(new_stats_path, 'w') as f:
-            for entry in episode_stats_list:
-                f.write(json.dumps(entry) + "\n")
-        print("  - episodes_stats.jsonlの更新完了")
-
-    except Exception as e:
-        print(f"エラー: 統計計算中に問題が発生しました: {e}")
-        traceback.print_exc()
+    # episodes_stats.jsonlをコピーしてフィルタリング
+    copy_and_filter_episodes_stats(SOURCE_PATH, TARGET_PATH)
 
     print("=" * 60)
     print("すべての処理が完了しました。")
