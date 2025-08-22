@@ -71,11 +71,11 @@ export CUDA_VISIBLE_DEVICES=0
 
 python lerobot/scripts/train.py \
   --policy.path=lerobot/smolvla_base \
-  --dataset.root=data3/train/dataset/koch_new_fb_6d \
+  --dataset.repo_id=shin1107/koch_new_fb_6d3 \
   --batch_size=64 \
   --steps=100000 \
-  --output_dir=data3/train/new/koch_base_smolvla_wofb_4 \
-  --job_name=act_koch_base_smolvla_wofb_4 \
+  --output_dir=data3/train/new/koch_base_smolvla_wofb_5 \
+  --job_name=act_koch_base_smolvla_wofb_5 \
   --policy.device=cuda \
   --wandb.enable=true \
   --wandb.project=lerobot_policy
@@ -108,11 +108,11 @@ python lerobot/scripts/train.py \
 
 python lerobot/scripts/train.py \
   --policy.path=lerobot/pi0 \
-  --dataset.repo_id=shin1107/koch_new_fb \
+  --dataset.repo_id=shin1107/koch_new_fb_6d3 \
   --batch_size=8 \
   --steps=100000 \
-  --output_dir=data3/train/new/koch_base_pi0_wofb_3 \
-  --job_name=act_koch_base_pi0_wofb_3 \
+  --output_dir=data3/train/new/koch_base_pi0_wofb_5 \
+  --job_name=act_koch_base_pi0_wofb_5 \
   --policy.device=cuda \
   --wandb.enable=true \
   --wandb.project=lerobot_policy
